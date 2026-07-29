@@ -1,0 +1,11 @@
+{
+  "name": "kompra-em-promo-platform",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter web dev",
+    "build": "pnpm --filter web build",
+    "lint": "pnpm --filter web lint",
+    "typecheck": "pnpm --filter web type-check",
+    "test": "pnpm --filter web test:unit"
+  }
+}
