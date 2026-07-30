@@ -3,6 +3,8 @@ import { createRouter, createWebHistory } from 'vue-router'
 import AppLayout from '@/layouts/AppLayout.vue'
 import DashboardPage from '@/pages/DashboardPage.vue'
 import LoginPage from '@/pages/LoginPage.vue'
+import PromotionDetailPage from '@/pages/PromotionDetailPage.vue'
+import PromotionsPage from '@/pages/PromotionsPage.vue'
 import { useAuthStore } from '@/stores/authStore'
 
 const router = createRouter({
@@ -26,6 +28,16 @@ const router = createRouter({
           path: 'dashboard',
           name: 'dashboard',
           component: DashboardPage,
+        },
+        {
+          path: 'promotions',
+          name: 'promotions',
+          component: PromotionsPage,
+        },
+        {
+          path: 'promotions/:id',
+          name: 'promotion-details',
+          component: PromotionDetailPage,
         },
       ],
     },
