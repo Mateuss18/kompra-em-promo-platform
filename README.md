@@ -30,7 +30,6 @@ Nos dois casos, o sistema deverá criar o mesmo tipo de rascunho e seguir o mesm
 - Vue 3
 - TypeScript
 - Vite
-- PrimeVue
 - Tailwind CSS
 - Pinia
 - Vue Router
@@ -65,6 +64,13 @@ Projeto em planejamento e implementação do MVP frontend com dados mockados.
 ```sh
 pnpm install
 ```
+
+## Acesso de demonstração
+
+O login do MVP é local e não representa autenticação real.
+
+- E-mail: `admin@kompraempromo.com.br`
+- Senha: `admin123`
 
 ### Compile and Hot-Reload for Development
 

@@ -3,7 +3,6 @@
 ## EPIC-01 — Fundação do frontend
 
 - Criar projeto Vue 3 com Vite e TypeScript.
-- Configurar PrimeVue.
 - Configurar Tailwind CSS.
 - Configurar Pinia.
 - Configurar Vue Router.

@@ -2,7 +2,7 @@
 
 ## EPIC-01 — Fundação do frontend
 
-Configurar Vue, TypeScript, PrimeVue, Tailwind, Router, Pinia, padrões e layout base.
+Configurar Vue, TypeScript, Tailwind, Router, Pinia, padrões e layout base.
 
 ## EPIC-02 — Autenticação simulada
 

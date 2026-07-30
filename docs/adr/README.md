@@ -24,7 +24,7 @@ ADRs registram decisões técnicas relevantes.
 - ADR-0001 — Stack do frontend
 - ADR-0002 — Desenvolvimento frontend com mocks
 - ADR-0003 — Organização técnica do frontend
-- ADR-0004 — PrimeVue e Tailwind
+- ADR-0004 — Tailwind CSS com bibliotecas focadas
 - ADR-0005 — API REST
 - ADR-0006 — Autenticação própria
 - ADR-0007 — Parsers por loja

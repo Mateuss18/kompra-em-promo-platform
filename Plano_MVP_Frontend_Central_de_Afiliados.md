@@ -21,7 +21,6 @@ Ao final desta etapa será possível:
 -   Vue 3
 -   TypeScript
 -   Vite
--   PrimeVue
 -   Tailwind CSS
 -   Pinia
 -   Vue Router
@@ -57,7 +56,6 @@ src/
 ## Fase 0 --- Setup
 
 -   Criar projeto Vue + TS
--   Configurar PrimeVue
 -   Configurar Tailwind
 -   Configurar Pinia
 -   Configurar Vue Router
