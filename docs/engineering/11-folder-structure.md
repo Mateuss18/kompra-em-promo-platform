@@ -62,6 +62,6 @@ src/
 - Páginas não acessam mocks diretamente.
 - Componentes não fazem chamadas HTTP diretamente.
 - Stores orquestram estado; services acessam dados.
-- Tipos de domínio não devem depender de PrimeVue.
+- Tipos de domínio não devem depender de bibliotecas de interface.
 - Código específico de loja fica em seu parser.
 - Integração com Telegram não deve conter regras centrais de promoção.

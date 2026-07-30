@@ -23,7 +23,6 @@ Construir o frontend completo com dados mockados antes da API real.
 - Vue 3
 - TypeScript
 - Vite
-- PrimeVue
 - Tailwind CSS
 - Pinia
 - Vue Router
