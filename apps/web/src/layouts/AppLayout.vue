@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CircleUserRound, LayoutDashboard, LogOut, Zap } from '@lucide/vue'
+import { CircleUserRound, LayoutDashboard, LogOut, Tags, Zap } from '@lucide/vue'
 import { useRouter } from 'vue-router'
 
 import { useAuthStore } from '@/stores/authStore'
@@ -29,13 +29,25 @@ async function logout() {
         <span class="text-sm font-semibold tracking-[-0.01em]">Kompra Em Promo</span>
       </RouterLink>
 
-      <nav class="lg:mt-10 lg:flex-1" aria-label="Navegação principal">
+      <nav
+        class="flex gap-2 lg:mt-10 lg:block lg:flex-1 lg:space-y-2"
+        aria-label="Navegação principal"
+      >
         <RouterLink
           to="/dashboard"
-          class="bg-canvas-soft text-ink-strong hover:border-brand flex min-h-11 items-center gap-3 rounded-sm border border-transparent px-3 text-sm font-medium no-underline transition-colors"
+          class="text-body hover:border-brand hover:text-ink flex min-h-11 items-center gap-3 rounded-sm border border-transparent px-3 text-sm font-medium no-underline transition-colors"
+          active-class="bg-canvas-soft text-ink-strong"
         >
           <LayoutDashboard :size="18" aria-hidden="true" />
           <span class="hidden sm:inline">Visão geral</span>
+        </RouterLink>
+        <RouterLink
+          to="/promotions"
+          class="text-body hover:border-brand hover:text-ink flex min-h-11 items-center gap-3 rounded-sm border border-transparent px-3 text-sm font-medium no-underline transition-colors"
+          active-class="bg-canvas-soft text-ink-strong"
+        >
+          <Tags :size="18" aria-hidden="true" />
+          <span class="hidden sm:inline">Promoções</span>
         </RouterLink>
       </nav>
 
