@@ -42,3 +42,8 @@ export interface PromotionPage {
   pageCount: number
   total: number
 }
+
+export type UpdatePromotionInput = Pick<
+  Promotion,
+  'couponCode' | 'message' | 'originalPriceInCents' | 'priceInCents' | 'title'
+>

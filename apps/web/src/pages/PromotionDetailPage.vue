@@ -1,22 +1,28 @@
 <script setup lang="ts">
 import { ArrowLeft, ExternalLink, TriangleAlert } from '@lucide/vue'
-import { onMounted } from 'vue'
+import { onMounted, shallowRef } from 'vue'
 import { useRoute } from 'vue-router'
 
+import PromotionEditorForm from '@/components/promotions/PromotionEditorForm.vue'
 import { usePromotionStore } from '@/stores/promotionStore'
-import {
-  formatCurrency,
-  formatDateTime,
-  PROMOTION_STATUS_LABELS,
-  PROMOTION_STORE_LABELS,
-} from '@/utils/promotion'
+import type { UpdatePromotionInput } from '@/types/promotion'
+import { formatDateTime, PROMOTION_STATUS_LABELS, PROMOTION_STORE_LABELS } from '@/utils/promotion'
 
 const route = useRoute()
 const promotionStore = usePromotionStore()
+const saveMessage = shallowRef('')
 
 onMounted(() => {
   void promotionStore.loadPromotion(String(route.params.id))
 })
+
+async function savePromotion(input: UpdatePromotionInput) {
+  saveMessage.value = ''
+
+  if (await promotionStore.savePromotion(input)) {
+    saveMessage.value = 'Alterações salvas.'
+  }
+}
 </script>
 
 <template>
@@ -67,87 +73,75 @@ onMounted(() => {
         <h1
           class="text-ink-strong mt-5 mb-0 text-3xl leading-tight font-normal tracking-[-0.04em] md:text-4xl"
         >
-          {{ promotionStore.selectedPromotion.title }}
+          Editar promoção
         </h1>
         <p class="text-muted mt-3 mb-0 font-mono text-xs">
           {{ promotionStore.selectedPromotion.id }}
         </p>
       </header>
 
-      <section class="mt-10 grid gap-4 md:grid-cols-2" aria-label="Dados da promoção">
-        <article class="border-hairline rounded-md border p-6">
-          <h2 class="m-0 text-base font-semibold">Oferta</h2>
-          <dl class="mt-6 grid gap-5">
-            <div>
-              <dt class="text-muted text-xs">Preço atual</dt>
-              <dd class="text-ink-strong mt-1 mb-0 font-mono text-2xl">
-                {{ formatCurrency(promotionStore.selectedPromotion.priceInCents) }}
-              </dd>
-            </div>
-            <div v-if="promotionStore.selectedPromotion.originalPriceInCents !== null">
-              <dt class="text-muted text-xs">Preço original</dt>
-              <dd class="text-body mt-1 mb-0 font-mono text-sm">
-                {{ formatCurrency(promotionStore.selectedPromotion.originalPriceInCents) }}
-              </dd>
-            </div>
-            <div>
-              <dt class="text-muted text-xs">Cupom</dt>
-              <dd class="text-body mt-1 mb-0 font-mono text-sm">
-                {{ promotionStore.selectedPromotion.couponCode ?? 'Sem cupom' }}
-              </dd>
-            </div>
-          </dl>
-        </article>
+      <p
+        v-if="saveMessage"
+        role="status"
+        aria-live="polite"
+        class="border-brand text-brand mt-6 mb-0 border-l-2 py-2 pl-4 text-sm"
+      >
+        {{ saveMessage }}
+      </p>
 
-        <article class="border-hairline rounded-md border p-6">
-          <h2 class="m-0 text-base font-semibold">Registro</h2>
-          <dl class="mt-6 grid gap-5">
-            <div>
-              <dt class="text-muted text-xs">Criada em</dt>
-              <dd class="text-body mt-1 mb-0 text-sm">
-                {{ formatDateTime(promotionStore.selectedPromotion.createdAt) }}
-              </dd>
-            </div>
-            <div>
-              <dt class="text-muted text-xs">Atualizada em</dt>
-              <dd class="text-body mt-1 mb-0 text-sm">
-                {{ formatDateTime(promotionStore.selectedPromotion.updatedAt) }}
-              </dd>
-            </div>
-          </dl>
-        </article>
+      <div class="mt-10 grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
+        <PromotionEditorForm
+          :promotion="promotionStore.selectedPromotion"
+          :is-saving="promotionStore.isSaving"
+          :error-message="promotionStore.saveErrorMessage"
+          @dirty="saveMessage = ''"
+          @save="savePromotion"
+        />
 
-        <article class="border-hairline rounded-md border p-6 md:col-span-2">
-          <h2 class="m-0 text-base font-semibold">Mensagem</h2>
-          <p class="text-body mt-4 mb-0 whitespace-pre-wrap text-sm leading-6">
-            {{ promotionStore.selectedPromotion.message }}
-          </p>
-        </article>
+        <aside class="space-y-8" aria-label="Contexto da promoção">
+          <section class="border-hairline border-t pt-6" aria-labelledby="record-heading">
+            <h2 id="record-heading" class="m-0 text-base font-semibold">Registro</h2>
+            <dl class="mt-5 grid gap-5">
+              <div>
+                <dt class="text-muted text-xs">Criada em</dt>
+                <dd class="text-body mt-1 mb-0 text-sm">
+                  {{ formatDateTime(promotionStore.selectedPromotion.createdAt) }}
+                </dd>
+              </div>
+              <div>
+                <dt class="text-muted text-xs">Atualizada em</dt>
+                <dd class="text-body mt-1 mb-0 text-sm">
+                  {{ formatDateTime(promotionStore.selectedPromotion.updatedAt) }}
+                </dd>
+              </div>
+            </dl>
+          </section>
 
-        <article class="border-hairline rounded-md border p-6 md:col-span-2">
-          <h2 class="m-0 text-base font-semibold">Links</h2>
-          <div class="mt-4 flex flex-wrap gap-3">
-            <a
-              :href="promotionStore.selectedPromotion.sourceUrl"
-              target="_blank"
-              rel="noreferrer"
-              class="border-hairline text-body hover:border-brand hover:text-ink inline-flex min-h-11 items-center gap-2 rounded-sm border px-4 text-sm no-underline transition-colors"
-            >
-              Link original
-              <ExternalLink :size="16" aria-hidden="true" />
-            </a>
-            <a
-              :href="promotionStore.selectedPromotion.affiliateUrl"
-              target="_blank"
-              rel="noreferrer"
-              class="bg-brand text-canvas hover:bg-brand-soft inline-flex min-h-11 items-center gap-2 rounded-sm px-4 text-sm font-semibold no-underline transition-colors"
-            >
-              Link de afiliado
-              <ExternalLink :size="16" aria-hidden="true" />
-            </a>
-          </div>
-        </article>
-      </section>
+          <section class="border-hairline border-t pt-6" aria-labelledby="links-heading">
+            <h2 id="links-heading" class="m-0 text-base font-semibold">Links</h2>
+            <div class="mt-5 grid gap-3">
+              <a
+                :href="promotionStore.selectedPromotion.sourceUrl"
+                target="_blank"
+                rel="noreferrer"
+                class="border-hairline text-body hover:border-brand hover:text-ink inline-flex min-h-11 items-center justify-between gap-2 rounded-sm border px-4 text-sm no-underline transition-colors"
+              >
+                Abrir link original
+                <ExternalLink :size="16" aria-hidden="true" />
+              </a>
+              <a
+                :href="promotionStore.selectedPromotion.affiliateUrl"
+                target="_blank"
+                rel="noreferrer"
+                class="border-hairline text-body hover:border-brand hover:text-ink inline-flex min-h-11 items-center justify-between gap-2 rounded-sm border px-4 text-sm no-underline transition-colors"
+              >
+                Abrir link de afiliado
+                <ExternalLink :size="16" aria-hidden="true" />
+              </a>
+            </div>
+          </section>
+        </aside>
+      </div>
     </template>
   </div>
 </template>
