@@ -2,16 +2,24 @@ import { defineStore } from 'pinia'
 import { shallowRef } from 'vue'
 
 import { promotionService } from '@/services/promotionService'
-import type { Promotion, PromotionSort, PromotionStatus, PromotionStore } from '@/types/promotion'
+import type {
+  Promotion,
+  PromotionSort,
+  PromotionStatus,
+  PromotionStore,
+  UpdatePromotionInput,
+} from '@/types/promotion'
 
 const PAGE_SIZE = 5
 
 export const usePromotionStore = defineStore('promotion', () => {
   const errorMessage = shallowRef('')
   const isLoading = shallowRef(true)
+  const isSaving = shallowRef(false)
   const page = shallowRef(1)
   const pageCount = shallowRef(1)
   const promotions = shallowRef<Promotion[]>([])
+  const saveErrorMessage = shallowRef('')
   const search = shallowRef('')
   const selectedPromotion = shallowRef<Promotion | null>(null)
   const sort = shallowRef<PromotionSort>('NEWEST')
@@ -70,16 +78,43 @@ export const usePromotionStore = defineStore('promotion', () => {
     }
   }
 
+  async function savePromotion(input: UpdatePromotionInput) {
+    if (!selectedPromotion.value) return false
+
+    isSaving.value = true
+    saveErrorMessage.value = ''
+
+    try {
+      const updatedPromotion = await promotionService.update(selectedPromotion.value.id, input)
+
+      if (!updatedPromotion) {
+        saveErrorMessage.value = 'A promoção não está mais disponível.'
+        return false
+      }
+
+      selectedPromotion.value = updatedPromotion
+      return true
+    } catch {
+      saveErrorMessage.value = 'Não foi possível salvar as alterações.'
+      return false
+    } finally {
+      isSaving.value = false
+    }
+  }
+
   return {
     applyFilters,
     changePage,
     errorMessage,
     isLoading,
+    isSaving,
     loadPromotion,
     loadPromotions,
     page,
     pageCount,
     promotions,
+    saveErrorMessage,
+    savePromotion,
     search,
     selectedPromotion,
     sort,
