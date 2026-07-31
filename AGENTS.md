@@ -64,3 +64,5 @@ chore: (updating grunt tasks etc; no production code change)
 - nome da branch seguir o padrão feature/nome-implementacao (em ingles)
 - pode ser: feature, fix ou hotfix
 - Na abertura do merge request colocar na descrição um breve resumo do que ele cobre (aqui em portugues)
+- No Windows, se `gh` não estiver no `PATH`, usar `C:\Program Files\GitHub CLI\gh.exe`
+- Se `gh auth status` falhar dentro do sandbox, validar novamente fora dele antes de solicitar `gh auth login`; pedir nova autenticação apenas se a verificação externa também falhar
