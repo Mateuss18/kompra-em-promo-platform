@@ -1,5 +1,16 @@
 <script setup lang="ts">
-import { CircleDashed } from '@lucide/vue'
+import { BadgeCheck, FilePenLine, Send, TriangleAlert } from '@lucide/vue'
+import { onMounted } from 'vue'
+
+import DashboardRecentPromotions from '@/components/dashboard/DashboardRecentPromotions.vue'
+import DashboardSummaryCard from '@/components/dashboard/DashboardSummaryCard.vue'
+import { useDashboardStore } from '@/stores/dashboardStore'
+
+const dashboardStore = useDashboardStore()
+
+onMounted(() => {
+  void dashboardStore.loadDashboard()
+})
 </script>
 
 <template>
@@ -18,29 +29,71 @@ import { CircleDashed } from '@lucide/vue'
       </p>
     </header>
 
-    <section class="border-hairline mt-12 border-t" aria-labelledby="recent-promotions">
-      <div class="flex items-center justify-between gap-4 py-5">
-        <h2 id="recent-promotions" class="m-0 text-base font-semibold">Promoções recentes</h2>
-        <span class="text-muted font-mono text-xs">0 registros</span>
+    <div v-if="dashboardStore.isLoading" role="status" class="mt-12" aria-live="polite">
+      <span class="sr-only">Carregando dashboard</span>
+      <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div
+          v-for="item in 4"
+          :key="item"
+          class="border-hairline bg-canvas-soft h-32 animate-pulse rounded-md border"
+        />
       </div>
+      <div class="border-hairline bg-canvas-soft mt-12 h-64 animate-pulse border-y" />
+    </div>
 
-      <div
-        class="border-hairline flex min-h-64 flex-col items-center justify-center border-y px-6 py-12 text-center"
+    <div
+      v-else-if="dashboardStore.errorMessage"
+      role="alert"
+      class="border-hairline mt-12 flex min-h-64 flex-col items-center justify-center rounded-md border px-6 py-12 text-center"
+    >
+      <span
+        class="border-hairline text-muted grid size-12 place-items-center rounded-full border"
+        aria-hidden="true"
       >
-        <span
-          class="border-hairline text-muted grid size-12 place-items-center rounded-full border"
-          aria-hidden="true"
-        >
-          <CircleDashed :size="22" />
-        </span>
-        <h3 class="text-ink-strong mt-5 mb-0 text-base font-semibold">
-          Nenhuma promoção em acompanhamento
-        </h3>
-        <p class="text-body mt-2 mb-0 max-w-md text-sm leading-6">
-          Os rascunhos criados pelo painel ou pelo Telegram aparecerão aqui.
-        </p>
-      </div>
-    </section>
+        <TriangleAlert :size="22" />
+      </span>
+      <h2 class="text-ink-strong mt-5 mb-0 text-base font-semibold">
+        Falha ao carregar o dashboard
+      </h2>
+      <p class="text-body mt-2 mb-0 text-sm leading-6">{{ dashboardStore.errorMessage }}</p>
+      <button
+        type="button"
+        class="bg-brand text-canvas hover:bg-brand-soft mt-6 min-h-11 cursor-pointer rounded-sm border-0 px-4 text-sm font-semibold transition-colors"
+        @click="dashboardStore.loadDashboard"
+      >
+        Tentar novamente
+      </button>
+    </div>
+
+    <template v-else-if="dashboardStore.data">
+      <section
+        class="mt-12 grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
+        aria-label="Resumo das promoções"
+      >
+        <DashboardSummaryCard
+          label="Rascunhos"
+          :value="dashboardStore.data.indicators.drafts"
+          :icon="FilePenLine"
+        />
+        <DashboardSummaryCard
+          label="Aprovadas"
+          :value="dashboardStore.data.indicators.approved"
+          :icon="BadgeCheck"
+        />
+        <DashboardSummaryCard
+          label="Publicadas"
+          :value="dashboardStore.data.indicators.published"
+          :icon="Send"
+        />
+        <DashboardSummaryCard
+          label="Erros"
+          :value="dashboardStore.data.indicators.errors"
+          :icon="TriangleAlert"
+        />
+      </section>
+
+      <DashboardRecentPromotions :promotions="dashboardStore.data.recentPromotions" />
+    </template>
   </div>
 </template>
 
