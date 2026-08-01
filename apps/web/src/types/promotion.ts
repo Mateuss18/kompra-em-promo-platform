@@ -12,10 +12,23 @@ export type PromotionStatus =
 
 export type PromotionSort = 'NEWEST' | 'OLDEST' | 'PRICE_ASC' | 'PRICE_DESC'
 
+export type PromotionWorkflowAction = 'APPROVE' | 'PUBLISH' | 'REJECT' | 'SUBMIT_FOR_REVIEW'
+
+export interface PromotionEvent {
+  action: PromotionWorkflowAction
+  actor: 'ADMIN'
+  createdAt: string
+  fromStatus: PromotionStatus
+  id: string
+  reason: string | null
+  toStatus: PromotionStatus
+}
+
 export interface Promotion {
   affiliateUrl: string
   couponCode: string | null
   createdAt: string
+  events?: PromotionEvent[]
   id: string
   message: string
   originalPriceInCents: number | null

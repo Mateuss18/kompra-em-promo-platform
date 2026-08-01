@@ -6,12 +6,13 @@ import type { Promotion, UpdatePromotionInput } from '@/types/promotion'
 
 const props = defineProps<{
   errorMessage: string
+  isReadOnly: boolean
   isSaving: boolean
   promotion: Promotion
 }>()
 
 const emit = defineEmits<{
-  dirty: []
+  dirty: [isDirty: boolean]
   save: [input: UpdatePromotionInput]
 }>()
 
@@ -62,7 +63,11 @@ const isValid = computed(() => {
   )
 })
 
-const canSave = computed(() => hasChanges.value && isValid.value && !props.isSaving)
+const canSave = computed(
+  () => hasChanges.value && isValid.value && !props.isReadOnly && !props.isSaving,
+)
+
+watch(hasChanges, (isDirty) => emit('dirty', isDirty))
 
 function resetForm() {
   if (!window.confirm('Descartar todas as alterações não salvas?')) return
@@ -89,16 +94,15 @@ function submitForm() {
 </script>
 
 <template>
-  <form
-    class="border-hairline rounded-md border"
-    @input="emit('dirty')"
-    @submit.prevent="submitForm"
-  >
+  <form class="border-hairline rounded-md border" @submit.prevent="submitForm">
     <section class="p-6" aria-labelledby="content-heading">
       <div class="max-w-2xl">
         <h2 id="content-heading" class="m-0 text-lg font-semibold">Conteúdo</h2>
         <p class="text-body mt-2 mb-0 text-sm">
           Revise as informações que serão usadas na divulgação.
+        </p>
+        <p v-if="isReadOnly" class="text-muted mt-2 mb-0 text-xs">
+          O conteúdo fica bloqueado após a aprovação ou encerramento do fluxo.
         </p>
       </div>
 
@@ -108,6 +112,7 @@ function submitForm() {
           <input
             id="promotion-title"
             v-model="form.title"
+            :disabled="isReadOnly"
             required
             autocomplete="off"
             class="border-hairline bg-canvas-soft text-ink focus:border-brand min-h-11 rounded-sm border px-4 text-sm outline-none transition-colors"
@@ -119,6 +124,7 @@ function submitForm() {
           <textarea
             id="promotion-message"
             v-model="form.message"
+            :disabled="isReadOnly"
             required
             rows="7"
             class="border-hairline bg-canvas-soft text-ink focus:border-brand min-h-40 resize-y rounded-sm border px-4 py-3 text-sm leading-6 outline-none transition-colors"
@@ -142,6 +148,7 @@ function submitForm() {
             <input
               id="promotion-price"
               v-model="form.price"
+              :disabled="isReadOnly"
               required
               type="number"
               min="0.01"
@@ -163,6 +170,7 @@ function submitForm() {
             <input
               id="promotion-original-price"
               v-model="form.originalPrice"
+              :disabled="isReadOnly"
               type="number"
               min="0.01"
               step="0.01"
@@ -177,6 +185,7 @@ function submitForm() {
           <input
             id="promotion-coupon"
             v-model="form.couponCode"
+            :disabled="isReadOnly"
             autocomplete="off"
             placeholder="Sem cupom"
             class="border-hairline bg-canvas-soft text-ink focus:border-brand min-h-11 rounded-sm border px-4 font-mono text-sm uppercase outline-none transition-colors"
@@ -205,7 +214,7 @@ function submitForm() {
       <div class="flex flex-col-reverse gap-3 sm:flex-row">
         <button
           type="button"
-          :disabled="!hasChanges || isSaving"
+          :disabled="!hasChanges || isReadOnly || isSaving"
           class="border-hairline text-body hover:border-brand hover:text-ink min-h-11 rounded-sm border px-5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40"
           @click="resetForm"
         >

@@ -7,6 +7,7 @@ import type {
   PromotionSort,
   PromotionStatus,
   PromotionStore,
+  PromotionWorkflowAction,
   UpdatePromotionInput,
 } from '@/types/promotion'
 
@@ -16,6 +17,7 @@ export const usePromotionStore = defineStore('promotion', () => {
   const errorMessage = shallowRef('')
   const isLoading = shallowRef(true)
   const isSaving = shallowRef(false)
+  const isTransitioning = shallowRef(false)
   const page = shallowRef(1)
   const pageCount = shallowRef(1)
   const promotions = shallowRef<Promotion[]>([])
@@ -26,6 +28,7 @@ export const usePromotionStore = defineStore('promotion', () => {
   const status = shallowRef<PromotionStatus | 'ALL'>('ALL')
   const store = shallowRef<PromotionStore | 'ALL'>('ALL')
   const total = shallowRef(0)
+  const transitionErrorMessage = shallowRef('')
 
   async function loadPromotions() {
     isLoading.value = true
@@ -67,6 +70,7 @@ export const usePromotionStore = defineStore('promotion', () => {
   async function loadPromotion(id: string) {
     isLoading.value = true
     errorMessage.value = ''
+    transitionErrorMessage.value = ''
     selectedPromotion.value = null
 
     try {
@@ -102,12 +106,41 @@ export const usePromotionStore = defineStore('promotion', () => {
     }
   }
 
+  async function transitionPromotion(action: PromotionWorkflowAction, rejectionReason?: string) {
+    if (!selectedPromotion.value) return false
+
+    isTransitioning.value = true
+    transitionErrorMessage.value = ''
+
+    try {
+      const updatedPromotion = await promotionService.transition(
+        selectedPromotion.value.id,
+        action,
+        rejectionReason,
+      )
+
+      if (!updatedPromotion) {
+        transitionErrorMessage.value = 'A promoção não está mais disponível.'
+        return false
+      }
+
+      selectedPromotion.value = updatedPromotion
+      return true
+    } catch {
+      transitionErrorMessage.value = 'Não foi possível alterar o status da promoção.'
+      return false
+    } finally {
+      isTransitioning.value = false
+    }
+  }
+
   return {
     applyFilters,
     changePage,
     errorMessage,
     isLoading,
     isSaving,
+    isTransitioning,
     loadPromotion,
     loadPromotions,
     page,
@@ -121,5 +154,7 @@ export const usePromotionStore = defineStore('promotion', () => {
     status,
     store,
     total,
+    transitionErrorMessage,
+    transitionPromotion,
   }
 })

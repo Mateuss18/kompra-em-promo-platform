@@ -4,7 +4,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import PromotionDetailPage from '@/pages/PromotionDetailPage.vue'
 import { promotionService } from '@/services/promotionService'
-import type { Promotion, PromotionPage, UpdatePromotionInput } from '@/types/promotion'
+import type {
+  Promotion,
+  PromotionPage,
+  PromotionWorkflowAction,
+  UpdatePromotionInput,
+} from '@/types/promotion'
 
 vi.mock('vue-router', async () => ({
   ...(await vi.importActual<typeof import('vue-router')>('vue-router')),
@@ -15,6 +20,14 @@ vi.mock('@/services/promotionService', () => ({
   promotionService: {
     getById: vi.fn<() => Promise<Promotion | null>>(),
     list: vi.fn<() => Promise<PromotionPage>>(),
+    transition:
+      vi.fn<
+        (
+          id: string,
+          action: PromotionWorkflowAction,
+          rejectionReason?: string,
+        ) => Promise<Promotion | null>
+      >(),
     update: vi.fn<(id: string, input: UpdatePromotionInput) => Promise<Promotion | null>>(),
   },
 }))
@@ -53,6 +66,7 @@ function mountPromotionDetailPage() {
 describe('PromotionDetailPage', () => {
   beforeEach(() => {
     vi.mocked(promotionService.getById).mockReset()
+    vi.mocked(promotionService.transition).mockReset()
     vi.mocked(promotionService.update).mockReset()
     vi.spyOn(window, 'confirm').mockReturnValue(true)
   })
@@ -123,5 +137,57 @@ describe('PromotionDetailPage', () => {
       'Echo Pop com Alexa',
     )
     expect(promotionService.update).not.toHaveBeenCalled()
+  })
+
+  it('approves a promotion ready for review', async () => {
+    const readyPromotion: Promotion = { ...promotion, status: 'READY_FOR_REVIEW' }
+    const approvedPromotion: Promotion = { ...readyPromotion, status: 'APPROVED' }
+    vi.mocked(promotionService.getById).mockResolvedValue(readyPromotion)
+    vi.mocked(promotionService.transition).mockResolvedValue(approvedPromotion)
+
+    const wrapper = mountPromotionDetailPage()
+    await flushPromises()
+    const approveButton = wrapper
+      .findAll('button')
+      .find((button) => button.text().includes('Aprovar promoção'))
+
+    expect(approveButton).toBeDefined()
+    await approveButton!.trigger('click')
+    await flushPromises()
+
+    expect(promotionService.transition).toHaveBeenCalledWith('promo_test', 'APPROVE', undefined)
+    expect(wrapper.text()).toContain('Aprovada')
+    expect(wrapper.get('[role="status"]').text()).toContain('Status atualizado.')
+  })
+
+  it('requires and submits a rejection reason', async () => {
+    vi.mocked(promotionService.getById).mockResolvedValue({
+      ...promotion,
+      status: 'READY_FOR_REVIEW',
+    })
+    vi.mocked(promotionService.transition).mockResolvedValue({
+      ...promotion,
+      status: 'REJECTED',
+    })
+
+    const wrapper = mountPromotionDetailPage()
+    await flushPromises()
+    const rejectButton = wrapper
+      .findAll('button')
+      .find((button) => button.text().includes('Rejeitar promoção'))
+
+    await rejectButton!.trigger('click')
+    await wrapper.get('#rejection-reason').setValue('Preço incorreto.')
+    await wrapper
+      .get('#rejection-reason')
+      .element.closest('form')!
+      .dispatchEvent(new Event('submit'))
+    await flushPromises()
+
+    expect(promotionService.transition).toHaveBeenCalledWith(
+      'promo_test',
+      'REJECT',
+      'Preço incorreto.',
+    )
   })
 })

@@ -39,6 +39,14 @@ a {
   -webkit-tap-highlight-color: transparent;
 }
 
+button:enabled {
+  cursor: pointer;
+}
+
+button:enabled:hover {
+  filter: brightness(1.08);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
