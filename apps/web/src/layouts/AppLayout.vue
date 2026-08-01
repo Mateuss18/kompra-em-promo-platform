@@ -1,14 +1,16 @@
 <script setup lang="ts">
 import { CircleUserRound, LayoutDashboard, LogOut, Tags, Zap } from '@lucide/vue'
+import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 
 import { useAuthStore } from '@/stores/authStore'
 
 const authStore = useAuthStore()
+const { isLoading, user } = storeToRefs(authStore)
 const router = useRouter()
 
 async function logout() {
-  authStore.logout()
+  await authStore.logout()
   await router.push({ name: 'login' })
 }
 </script>
@@ -57,7 +59,7 @@ async function logout() {
         </span>
         <span>
           <strong class="block text-sm font-medium">Administrador</strong>
-          <small class="text-muted text-xs">Sessão simulada</small>
+          <small class="text-muted text-xs">{{ user?.email }}</small>
         </span>
       </div>
     </aside>
@@ -78,6 +80,8 @@ async function logout() {
           </span>
           <button
             type="button"
+            :disabled="isLoading"
+            :aria-busy="isLoading"
             class="border-hairline text-body hover:border-brand hover:text-ink flex min-h-11 cursor-pointer items-center gap-2 rounded-sm border bg-transparent px-3 text-sm transition-colors"
             aria-label="Sair da sessão"
             @click="logout"

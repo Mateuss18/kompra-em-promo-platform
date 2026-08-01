@@ -7,13 +7,16 @@
     "dev": "vite",
     "build": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",
+    "test": "vitest run",
     "test:unit": "vitest",
     "build-only": "vite build",
     "type-check": "vue-tsc --build",
     "lint": "run-s \"lint:*\"",
     "lint:oxlint": "oxlint . --fix",
     "lint:eslint": "eslint . --fix --cache",
-    "format": "prettier --write --experimental-cli src/"
+    "format": "prettier --write --experimental-cli src/",
+    "format:check": "prettier --check src/",
+    "typecheck": "vue-tsc --build"
   },
   "dependencies": {
     "@lucide/vue": "^1.27.0",

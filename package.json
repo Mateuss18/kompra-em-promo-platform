@@ -2,10 +2,16 @@
   "name": "kompra-em-promo-platform",
   "private": true,
   "scripts": {
-    "dev": "pnpm --filter web dev",
-    "build": "pnpm --filter web build",
-    "lint": "pnpm --filter web lint",
-    "typecheck": "pnpm --filter web type-check",
-    "test": "pnpm --filter web test:unit"
+    "dev": "pnpm --parallel --filter api --filter web dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "format:check": "pnpm -r format:check",
+    "prisma:generate": "pnpm --filter api prisma:generate",
+    "db:up": "docker compose up -d --wait postgres",
+    "db:down": "docker compose down",
+    "db:migrate": "pnpm --filter api db:migrate",
+    "admin:upsert": "pnpm --filter api admin:upsert"
   }
 }

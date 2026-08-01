@@ -44,8 +44,9 @@ const router = createRouter({
   ],
 })
 
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   const authStore = useAuthStore()
+  await authStore.restoreSession()
 
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     return { name: 'login' }

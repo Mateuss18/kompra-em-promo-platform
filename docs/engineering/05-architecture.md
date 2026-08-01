@@ -24,7 +24,7 @@ API Fastify
 
 Responsável por:
 
-- Login simulado no MVP frontend.
+- Login e sessão integrados à API.
 - Dashboard.
 - Gestão e edição de promoções.
 - Aprovação.

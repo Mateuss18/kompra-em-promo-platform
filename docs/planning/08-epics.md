@@ -1,30 +1,30 @@
 # Épicos
 
-## EPIC-01 — Fundação do frontend
+## EPIC-01 — Fundação do frontend ✅
 
 Configurar Vue, TypeScript, Tailwind, Router, Pinia, padrões e layout base.
 
-## EPIC-02 — Autenticação simulada
+## EPIC-02 — Autenticação simulada ✅
 
 Permitir acesso ao frontend com login fake e rota protegida, sem backend.
 
-## EPIC-03 — Dashboard
+## EPIC-03 — Dashboard ✅
 
 Apresentar resumo de rascunhos, aprovadas, publicadas e erros.
 
-## EPIC-04 — Gestão de promoções
+## EPIC-04 — Gestão de promoções ✅
 
 Listar, buscar, filtrar, visualizar e editar promoções.
 
-## EPIC-05 — Conteúdo da promoção
+## EPIC-05 — Conteúdo da promoção ✅
 
 Editar dados do produto, cupom, mensagem e preview da imagem.
 
-## EPIC-06 — Aprovação e publicação simulada
+## EPIC-06 — Aprovação e publicação simulada ✅
 
 Alterar estados da promoção e validar o fluxo antes da API real.
 
-## EPIC-07 — Backend e autenticação real
+## EPIC-07 — Backend e autenticação real ✅
 
 Criar API, banco, autenticação própria e autorização para `ADMIN`.
 
