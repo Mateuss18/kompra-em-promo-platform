@@ -51,15 +51,16 @@ describe('promotionService', () => {
   })
 
   it('updates and persists promotion content', async () => {
-    const beforeUpdate = await promotionService.getById('promo_01K1CP2Y9M4K7D6A3Q8R')
-    const updatedPromotion = await promotionService.update('promo_01K1CP2Y9M4K7D6A3Q8R', {
+    const id = 'promo_01K1D9F2B6VQ8S4T7X3M'
+    const beforeUpdate = await promotionService.getById(id)
+    const updatedPromotion = await promotionService.update(id, {
       couponCode: ' ALEXA20 ',
       message: ' Oferta revisada. ',
       originalPriceInCents: null,
       priceInCents: 21990,
       title: ' Echo Pop em oferta ',
     })
-    const persistedPromotion = await promotionService.getById('promo_01K1CP2Y9M4K7D6A3Q8R')
+    const persistedPromotion = await promotionService.getById(id)
 
     expect(updatedPromotion).toMatchObject({
       couponCode: 'ALEXA20',
@@ -71,5 +72,51 @@ describe('promotionService', () => {
     expect(persistedPromotion).toEqual(updatedPromotion)
     expect(Date.parse(updatedPromotion!.updatedAt)).not.toBeNaN()
     expect(updatedPromotion!.updatedAt >= beforeUpdate!.updatedAt).toBe(true)
+  })
+
+  it('persists valid workflow transitions and their events', async () => {
+    const id = 'promo_01K1D9F2B6VQ8S4T7X3M'
+
+    await promotionService.transition(id, 'SUBMIT_FOR_REVIEW')
+    await promotionService.transition(id, 'APPROVE')
+    const publishedPromotion = await promotionService.transition(id, 'PUBLISH')
+    const persistedPromotion = await promotionService.getById(id)
+
+    expect(publishedPromotion?.status).toBe('PUBLISHED')
+    expect(publishedPromotion?.events?.map((event) => event.action)).toEqual([
+      'SUBMIT_FOR_REVIEW',
+      'APPROVE',
+      'PUBLISH',
+    ])
+    expect(publishedPromotion?.events?.every((event) => event.actor === 'ADMIN')).toBe(true)
+    expect(persistedPromotion).toEqual(publishedPromotion)
+  })
+
+  it('requires a rejection reason and blocks invalid transitions', async () => {
+    const id = 'promo_01K19YQ4F8B2M6V7R3TX'
+
+    await expect(promotionService.transition(id, 'REJECT')).rejects.toThrow(
+      'Rejection reason is required',
+    )
+    await expect(promotionService.transition(id, 'PUBLISH')).rejects.toThrow(
+      'Invalid promotion transition',
+    )
+
+    const rejectedPromotion = await promotionService.transition(id, 'REJECT', ' Preço incorreto. ')
+
+    expect(rejectedPromotion?.status).toBe('REJECTED')
+    expect(rejectedPromotion?.events?.[0]?.reason).toBe('Preço incorreto.')
+  })
+
+  it('keeps approved content immutable', async () => {
+    await expect(
+      promotionService.update('promo_01K1D5A7N2P9R4C6W8YH', {
+        couponCode: null,
+        message: 'Conteúdo alterado após aprovação.',
+        originalPriceInCents: null,
+        priceInCents: 299900,
+        title: 'Smart TV alterada',
+      }),
+    ).rejects.toThrow('Promotion content cannot be edited in its current status')
   })
 })

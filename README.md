@@ -57,7 +57,7 @@ Nos dois casos, o sistema deverá criar o mesmo tipo de rascunho e seguir o mesm
 
 ## Status
 
-Projeto em planejamento e implementação do MVP frontend com dados mockados.
+MVP frontend com dados mockados e autenticação real integrada à API. As promoções continuam locais até a implementação do CRUD no backend.
 
 ## Setup do Projeto
 
@@ -65,17 +65,34 @@ Projeto em planejamento e implementação do MVP frontend com dados mockados.
 pnpm install
 ```
 
-## Acesso de demonstração
+Copie `apps/api/.env.example` para `apps/api/.env` e defina `ACCESS_TOKEN_SECRET`, `ADMIN_EMAIL` e `ADMIN_PASSWORD`. Os valores de exemplo não são aceitos. Para usar outra origem da API no frontend, copie também `apps/web/.env.example` para `apps/web/.env`.
 
-O login do MVP é local e não representa autenticação real.
+Com o Docker Desktop aberto, inicie o PostgreSQL, gere o Prisma Client e aplique as migrations:
 
-- E-mail: `admin@kompraempromo.com.br`
-- Senha: `admin123`
+```sh
+pnpm db:up
+pnpm prisma:generate
+pnpm db:migrate
+```
+
+Crie ou atualize o administrador com `DATABASE_URL`, `ADMIN_EMAIL` e `ADMIN_PASSWORD` configurados no ambiente:
+
+```sh
+pnpm admin:upsert
+```
+
+O login usa os valores `ADMIN_EMAIL` e `ADMIN_PASSWORD` de `apps/api/.env`.
 
 ### Compile and Hot-Reload for Development
 
 ```sh
 pnpm dev
+```
+
+Para encerrar o PostgreSQL sem apagar os dados:
+
+```sh
+pnpm db:down
 ```
 
 ### Type-Check, Compile and Minify for Production
@@ -87,11 +104,18 @@ pnpm build
 ### Run Unit Tests with Vitest
 
 ```sh
-pnpm test:unit
+pnpm test
 ```
 
 ### Lint with ESLint
 
 ```sh
 pnpm lint
+```
+
+### Typecheck e formatação
+
+```sh
+pnpm typecheck
+pnpm format:check
 ```

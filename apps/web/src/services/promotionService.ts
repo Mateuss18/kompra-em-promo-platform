@@ -1,12 +1,61 @@
 import { promotionsMock } from '@/mocks/promotions'
 import type {
   Promotion,
+  PromotionEvent,
   PromotionFilters,
   PromotionPage,
+  PromotionStatus,
+  PromotionStore,
+  PromotionWorkflowAction,
   UpdatePromotionInput,
 } from '@/types/promotion'
 
 const STORAGE_KEY = 'kompra-em-promo:promotions'
+const PROMOTION_STATUSES = new Set<PromotionStatus>([
+  'APPROVED',
+  'DRAFT',
+  'FAILED',
+  'PROCESSING',
+  'PUBLISHED',
+  'PUBLISHING',
+  'READY_FOR_REVIEW',
+  'REJECTED',
+])
+const PROMOTION_STORES = new Set<PromotionStore>(['AMAZON', 'MERCADO_LIVRE', 'SHOPEE'])
+const WORKFLOW_ACTIONS = new Set<PromotionWorkflowAction>([
+  'APPROVE',
+  'PUBLISH',
+  'REJECT',
+  'SUBMIT_FOR_REVIEW',
+])
+const TRANSITIONS: Record<
+  PromotionWorkflowAction,
+  { fromStatus: PromotionStatus; toStatus: PromotionStatus }
+> = {
+  APPROVE: { fromStatus: 'READY_FOR_REVIEW', toStatus: 'APPROVED' },
+  PUBLISH: { fromStatus: 'APPROVED', toStatus: 'PUBLISHED' },
+  REJECT: { fromStatus: 'READY_FOR_REVIEW', toStatus: 'REJECTED' },
+  SUBMIT_FOR_REVIEW: { fromStatus: 'DRAFT', toStatus: 'READY_FOR_REVIEW' },
+}
+
+function isPromotionEvent(value: unknown): value is PromotionEvent {
+  if (!value || typeof value !== 'object') return false
+
+  const event = value as Record<string, unknown>
+
+  return (
+    typeof event.action === 'string' &&
+    WORKFLOW_ACTIONS.has(event.action as PromotionWorkflowAction) &&
+    event.actor === 'ADMIN' &&
+    typeof event.createdAt === 'string' &&
+    typeof event.fromStatus === 'string' &&
+    PROMOTION_STATUSES.has(event.fromStatus as PromotionStatus) &&
+    typeof event.id === 'string' &&
+    (event.reason === null || typeof event.reason === 'string') &&
+    typeof event.toStatus === 'string' &&
+    PROMOTION_STATUSES.has(event.toStatus as PromotionStatus)
+  )
+}
 
 function isPromotion(value: unknown): value is Promotion {
   if (!value || typeof value !== 'object') return false
@@ -17,6 +66,8 @@ function isPromotion(value: unknown): value is Promotion {
     typeof promotion.affiliateUrl === 'string' &&
     (promotion.couponCode === null || typeof promotion.couponCode === 'string') &&
     typeof promotion.createdAt === 'string' &&
+    (promotion.events === undefined ||
+      (Array.isArray(promotion.events) && promotion.events.every(isPromotionEvent))) &&
     typeof promotion.id === 'string' &&
     typeof promotion.message === 'string' &&
     (promotion.originalPriceInCents === null ||
@@ -24,7 +75,9 @@ function isPromotion(value: unknown): value is Promotion {
     typeof promotion.priceInCents === 'number' &&
     typeof promotion.sourceUrl === 'string' &&
     typeof promotion.status === 'string' &&
+    PROMOTION_STATUSES.has(promotion.status as PromotionStatus) &&
     typeof promotion.store === 'string' &&
+    PROMOTION_STORES.has(promotion.store as PromotionStore) &&
     typeof promotion.title === 'string' &&
     typeof promotion.updatedAt === 'string'
   )
@@ -94,6 +147,9 @@ export const promotionService = {
     const promotions = readPromotions()
     const index = promotions.findIndex((promotion) => promotion.id === id)
     if (index === -1) return null
+    if (!['DRAFT', 'READY_FOR_REVIEW'].includes(promotions[index]!.status)) {
+      throw new Error('Promotion content cannot be edited in its current status')
+    }
 
     const updatedPromotion: Promotion = {
       ...promotions[index]!,
@@ -102,6 +158,49 @@ export const promotionService = {
       message,
       title,
       updatedAt: new Date().toISOString(),
+    }
+
+    promotions[index] = updatedPromotion
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(promotions))
+
+    return structuredClone(updatedPromotion)
+  },
+
+  async transition(
+    id: string,
+    action: PromotionWorkflowAction,
+    rejectionReason?: string,
+  ): Promise<Promotion | null> {
+    const promotions = readPromotions()
+    const index = promotions.findIndex((promotion) => promotion.id === id)
+    if (index === -1) return null
+
+    const promotion = promotions[index]!
+    const transition = TRANSITIONS[action]
+    if (promotion.status !== transition.fromStatus) {
+      throw new Error('Invalid promotion transition')
+    }
+
+    const reason = rejectionReason?.trim() || null
+    if (action === 'REJECT' && !reason) {
+      throw new Error('Rejection reason is required')
+    }
+
+    const createdAt = new Date().toISOString()
+    const event: PromotionEvent = {
+      action,
+      actor: 'ADMIN',
+      createdAt,
+      fromStatus: promotion.status,
+      id: `${promotion.id}:${createdAt}:${promotion.events?.length ?? 0}`,
+      reason: action === 'REJECT' ? reason : null,
+      toStatus: transition.toStatus,
+    }
+    const updatedPromotion: Promotion = {
+      ...promotion,
+      events: [...(promotion.events ?? []), event],
+      status: transition.toStatus,
+      updatedAt: createdAt,
     }
 
     promotions[index] = updatedPromotion

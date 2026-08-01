@@ -1,19 +1,19 @@
 <script setup lang="ts">
 import { LogIn, Zap } from '@lucide/vue'
+import { storeToRefs } from 'pinia'
 import { shallowRef } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { useAuthStore } from '@/stores/authStore'
 
 const authStore = useAuthStore()
+const { errorMessage, isLoading } = storeToRefs(authStore)
 const router = useRouter()
 const email = shallowRef('')
 const password = shallowRef('')
-const errorMessage = shallowRef('')
 
 async function handleSubmit() {
-  if (!authStore.login(email.value, password.value)) {
-    errorMessage.value = 'E-mail ou senha inválidos.'
+  if (!(await authStore.login(email.value, password.value))) {
     return
   }
 
@@ -38,7 +38,7 @@ async function handleSubmit() {
           Acesse o painel
         </h1>
         <p class="text-body mt-3 mb-0 text-sm leading-6">
-          Entre com as credenciais de demonstração para continuar.
+          Entre com seu e-mail e senha para continuar.
         </p>
       </header>
 
@@ -54,8 +54,9 @@ async function handleSubmit() {
             type="email"
             autocomplete="username"
             required
+            :disabled="isLoading"
             class="border-hairline bg-canvas text-ink placeholder:text-muted focus:border-brand focus:ring-brand mt-2 min-h-11 w-full rounded-sm border px-4 text-sm outline-none focus:ring-1"
-            placeholder="admin@kompraempromo.com.br"
+            placeholder="voce@exemplo.com"
           />
         </div>
 
@@ -67,6 +68,7 @@ async function handleSubmit() {
             type="password"
             autocomplete="current-password"
             required
+            :disabled="isLoading"
             class="border-hairline bg-canvas text-ink placeholder:text-muted focus:border-brand focus:ring-brand mt-2 min-h-11 w-full rounded-sm border px-4 text-sm outline-none focus:ring-1"
             placeholder="Digite a senha"
           />
@@ -78,15 +80,17 @@ async function handleSubmit() {
 
         <button
           type="submit"
+          :disabled="isLoading"
+          :aria-busy="isLoading"
           class="bg-brand text-canvas hover:bg-brand-soft mt-6 flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-sm border-0 px-4 text-base font-semibold transition-colors"
         >
           <LogIn :size="18" aria-hidden="true" />
-          Entrar
+          {{ isLoading ? 'Entrando...' : 'Entrar' }}
         </button>
       </form>
 
       <p class="text-muted mt-5 mb-0 text-center font-mono text-xs">
-        Ambiente local · sessão simulada
+        Acesso restrito · administrador
       </p>
     </section>
   </main>

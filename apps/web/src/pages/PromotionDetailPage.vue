@@ -1,15 +1,22 @@
 <script setup lang="ts">
 import { ArrowLeft, ExternalLink, TriangleAlert } from '@lucide/vue'
-import { onMounted, shallowRef } from 'vue'
+import { computed, onMounted, shallowRef } from 'vue'
 import { useRoute } from 'vue-router'
 
 import PromotionEditorForm from '@/components/promotions/PromotionEditorForm.vue'
+import PromotionWorkflowActions from '@/components/promotions/PromotionWorkflowActions.vue'
 import { usePromotionStore } from '@/stores/promotionStore'
-import type { UpdatePromotionInput } from '@/types/promotion'
+import type { PromotionWorkflowAction, UpdatePromotionInput } from '@/types/promotion'
 import { formatDateTime, PROMOTION_STATUS_LABELS, PROMOTION_STORE_LABELS } from '@/utils/promotion'
 
 const route = useRoute()
 const promotionStore = usePromotionStore()
+const canEditPromotion = computed(
+  () =>
+    promotionStore.selectedPromotion?.status === 'DRAFT' ||
+    promotionStore.selectedPromotion?.status === 'READY_FOR_REVIEW',
+)
+const hasUnsavedChanges = shallowRef(false)
 const saveMessage = shallowRef('')
 
 onMounted(() => {
@@ -20,7 +27,21 @@ async function savePromotion(input: UpdatePromotionInput) {
   saveMessage.value = ''
 
   if (await promotionStore.savePromotion(input)) {
+    hasUnsavedChanges.value = false
     saveMessage.value = 'Alterações salvas.'
+  }
+}
+
+function setDirty(isDirty: boolean) {
+  hasUnsavedChanges.value = isDirty
+  saveMessage.value = ''
+}
+
+async function transitionPromotion(action: PromotionWorkflowAction, rejectionReason?: string) {
+  saveMessage.value = ''
+
+  if (await promotionStore.transitionPromotion(action, rejectionReason)) {
+    saveMessage.value = 'Status atualizado.'
   }
 }
 </script>
@@ -92,13 +113,22 @@ async function savePromotion(input: UpdatePromotionInput) {
       <div class="mt-10 grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
         <PromotionEditorForm
           :promotion="promotionStore.selectedPromotion"
+          :is-read-only="!canEditPromotion"
           :is-saving="promotionStore.isSaving"
           :error-message="promotionStore.saveErrorMessage"
-          @dirty="saveMessage = ''"
+          @dirty="setDirty"
           @save="savePromotion"
         />
 
         <aside class="space-y-8" aria-label="Contexto da promoção">
+          <PromotionWorkflowActions
+            :disabled="hasUnsavedChanges"
+            :error-message="promotionStore.transitionErrorMessage"
+            :is-transitioning="promotionStore.isTransitioning"
+            :promotion="promotionStore.selectedPromotion"
+            @transition="transitionPromotion"
+          />
+
           <section class="border-hairline border-t pt-6" aria-labelledby="record-heading">
             <h2 id="record-heading" class="m-0 text-base font-semibold">Registro</h2>
             <dl class="mt-5 grid gap-5">

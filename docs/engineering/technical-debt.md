@@ -4,7 +4,6 @@ Este documento registra atalhos conscientes e limitações aceitas temporariamen
 
 | Item | Motivo | Risco | Momento de correção |
 |---|---|---|---|
-| Login simulado no frontend | Permitir avanço antes do backend | Não representa segurança real | Backend e autenticação |
 | Mocks no frontend | Validar UX e fluxo | Diferenças em relação à API real | Integração com backend |
 | Persistência em `localStorage` | Evitar banco no primeiro marco | Dados locais e frágeis | CRUD no PostgreSQL |
 | Publicação simulada | Validar estados sem Telegram | Não testa integração real | Milestone de publicação |

@@ -1,27 +1,84 @@
 import { defineStore } from 'pinia'
-import { shallowRef } from 'vue'
+import { computed, shallowRef } from 'vue'
 
-const SESSION_KEY = 'kompra-em-promo:session'
-const DEMO_EMAIL = 'admin@kompraempromo.com.br'
-const DEMO_PASSWORD = 'admin123'
+import { authService } from '@/services/authService'
+import type { AuthSession, AuthUser } from '@/types/auth'
 
 export const useAuthStore = defineStore('auth', () => {
-  const isAuthenticated = shallowRef(localStorage.getItem(SESSION_KEY) === 'authenticated')
+  const accessToken = shallowRef<string | null>(null)
+  const user = shallowRef<AuthUser | null>(null)
+  const isInitialized = shallowRef(false)
+  const isLoading = shallowRef(false)
+  const errorMessage = shallowRef('')
+  const isAuthenticated = computed(() => accessToken.value !== null && user.value !== null)
 
-  function login(email: string, password: string) {
-    if (email.trim().toLowerCase() !== DEMO_EMAIL || password !== DEMO_PASSWORD) {
-      return false
+  function applySession(session: AuthSession) {
+    accessToken.value = session.accessToken
+    user.value = session.user
+  }
+
+  function clearSession() {
+    accessToken.value = null
+    user.value = null
+  }
+
+  async function restoreSession() {
+    if (isInitialized.value) {
+      return isAuthenticated.value
     }
 
-    localStorage.setItem(SESSION_KEY, 'authenticated')
-    isAuthenticated.value = true
-    return true
+    isLoading.value = true
+
+    try {
+      applySession(await authService.refresh())
+      return true
+    } catch {
+      clearSession()
+      return false
+    } finally {
+      isInitialized.value = true
+      isLoading.value = false
+    }
   }
 
-  function logout() {
-    localStorage.removeItem(SESSION_KEY)
-    isAuthenticated.value = false
+  async function login(email: string, password: string) {
+    isLoading.value = true
+    errorMessage.value = ''
+
+    try {
+      applySession(await authService.login({ email: email.trim(), password }))
+      isInitialized.value = true
+      return true
+    } catch (error) {
+      clearSession()
+      errorMessage.value =
+        error instanceof Error && 'status' in error && error.status === 401
+          ? 'E-mail ou senha inválidos.'
+          : 'Não foi possível entrar. Tente novamente.'
+      return false
+    } finally {
+      isLoading.value = false
+    }
   }
 
-  return { isAuthenticated, login, logout }
+  async function logout() {
+    isLoading.value = true
+    errorMessage.value = ''
+    await authService.logout().catch(() => undefined)
+    clearSession()
+    isInitialized.value = true
+    isLoading.value = false
+  }
+
+  return {
+    accessToken,
+    user,
+    isInitialized,
+    isLoading,
+    errorMessage,
+    isAuthenticated,
+    restoreSession,
+    login,
+    logout,
+  }
 })
