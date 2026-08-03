@@ -33,3 +33,31 @@ export function formatCurrency(valueInCents: number) {
 export function formatDateTime(value: string) {
   return dateFormatter.format(new Date(value))
 }
+
+export function generatePromotionMessage(
+  title: string,
+  originalPriceInCents: number | null,
+  priceInCents: number,
+  store: PromotionStore,
+  affiliateUrl: string,
+): string {
+  const currentPrice = formatCurrency(priceInCents)
+  const storeLabel = PROMOTION_STORE_LABELS[store]
+  const lines = [title.trim(), '']
+
+  if (originalPriceInCents && originalPriceInCents > priceInCents) {
+    const discount = Math.round((1 - priceInCents / originalPriceInCents) * 100)
+    lines.push(
+      `*${discount}% de desconto*`,
+      '',
+      `~De ${formatCurrency(originalPriceInCents)}~`,
+      `*Por ${currentPrice}*`,
+    )
+  } else {
+    lines.push(`*Por ${currentPrice}*`)
+  }
+
+  lines.push('', `🛒 ${storeLabel}`, '', `🔗 Link ${affiliateUrl}`)
+
+  return lines.join('\n')
+}

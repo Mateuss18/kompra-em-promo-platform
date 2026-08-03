@@ -28,7 +28,7 @@ Alterar estados da promoção e validar o fluxo antes da API real.
 
 Criar API, banco, autenticação própria e autorização para `ADMIN`.
 
-## EPIC-08 — Ingestão de links
+## EPIC-08 — Ingestão de links ✅
 
 Receber links pelo painel e pelo grupo privado do Telegram.
 

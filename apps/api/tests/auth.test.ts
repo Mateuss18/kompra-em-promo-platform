@@ -15,6 +15,8 @@ const config: ApiConfig = {
   webOrigin: 'http://localhost:5173',
   secureCookies: false,
   databaseUrl: 'postgresql://unused',
+  telegramGroupId: null,
+  telegramWebhookSecret: null,
 }
 
 const apps: Awaited<ReturnType<typeof createApp>>[] = []
@@ -80,6 +82,23 @@ const createFakePrisma = async () => {
 }
 
 describe('authentication API', () => {
+  it('allows PATCH promotion requests through CORS', async () => {
+    const app = await createApp({ config, prisma: await createFakePrisma() })
+    apps.push(app)
+
+    const response = await app.inject({
+      method: 'OPTIONS',
+      url: '/api/promotions/promotion-id',
+      headers: {
+        origin: config.webOrigin,
+        'access-control-request-method': 'PATCH',
+      },
+    })
+
+    expect(response.statusCode).toBe(204)
+    expect(response.headers['access-control-allow-methods']).toContain('PATCH')
+  })
+
   it('logs in, rotates the refresh token, authenticates and logs out', async () => {
     const app = await createApp({ config, prisma: await createFakePrisma() })
     apps.push(app)

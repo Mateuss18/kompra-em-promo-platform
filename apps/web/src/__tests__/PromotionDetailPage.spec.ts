@@ -124,13 +124,16 @@ describe('PromotionDetailPage', () => {
 
     await wrapper.get('#promotion-title').setValue('Título temporário')
     vi.mocked(window.confirm).mockReturnValueOnce(false)
-    await wrapper.get('button[type="button"]').trigger('click')
+    const discardButton = wrapper
+      .findAll('button')
+      .find((button) => button.text().includes('Descartar alterações'))
+    await discardButton!.trigger('click')
 
     expect(wrapper.get<HTMLInputElement>('#promotion-title').element.value).toBe(
       'Título temporário',
     )
 
-    await wrapper.get('button[type="button"]').trigger('click')
+    await discardButton!.trigger('click')
 
     expect(window.confirm).toHaveBeenCalledWith('Descartar todas as alterações não salvas?')
     expect(wrapper.get<HTMLInputElement>('#promotion-title').element.value).toBe(

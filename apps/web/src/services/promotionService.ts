@@ -1,4 +1,5 @@
 import { promotionsMock } from '@/mocks/promotions'
+import { getAccessToken } from '@/services/authService'
 import type {
   Promotion,
   PromotionEvent,
@@ -11,6 +12,8 @@ import type {
 } from '@/types/promotion'
 
 const STORAGE_KEY = 'kompra-em-promo:promotions'
+const API_URL = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '')
+const usesApi = () => Boolean(API_URL && getAccessToken())
 const PROMOTION_STATUSES = new Set<PromotionStatus>([
   'APPROVED',
   'DRAFT',
@@ -36,6 +39,34 @@ const TRANSITIONS: Record<
   PUBLISH: { fromStatus: 'APPROVED', toStatus: 'PUBLISHED' },
   REJECT: { fromStatus: 'READY_FOR_REVIEW', toStatus: 'REJECTED' },
   SUBMIT_FOR_REVIEW: { fromStatus: 'DRAFT', toStatus: 'READY_FOR_REVIEW' },
+}
+
+const isDomain = (hostname: string, domain: string) =>
+  hostname === domain || hostname.endsWith(`.${domain}`)
+
+function detectStore(url: string): PromotionStore {
+  const parsedUrl = new URL(url)
+  const hostname = parsedUrl.hostname.toLowerCase()
+
+  if (!['http:', 'https:'].includes(parsedUrl.protocol)) throw new Error('Invalid URL')
+  if (isDomain(hostname, 'shopee.com.br') || isDomain(hostname, 'shopee.com')) return 'SHOPEE'
+  if (
+    isDomain(hostname, 'amazon.com.br') ||
+    isDomain(hostname, 'amazon.com') ||
+    hostname === 'amzn.to'
+  ) {
+    return 'AMAZON'
+  }
+  if (
+    isDomain(hostname, 'mercadolivre.com.br') ||
+    isDomain(hostname, 'mercadolibre.com.br') ||
+    isDomain(hostname, 'mercadolibre.com') ||
+    hostname === 'meli.la'
+  ) {
+    return 'MERCADO_LIVRE'
+  }
+
+  throw new Error('Unsupported store')
 }
 
 function isPromotionEvent(value: unknown): value is PromotionEvent {
@@ -97,12 +128,108 @@ function readPromotions(): Promotion[] {
   }
 }
 
+function parsePromotion(value: unknown): Promotion {
+  if (!isPromotion(value)) throw new Error('Invalid promotion response')
+  return value
+}
+
+function parsePromotionPage(value: unknown): PromotionPage {
+  if (
+    !value ||
+    typeof value !== 'object' ||
+    !('items' in value) ||
+    !Array.isArray(value.items) ||
+    !value.items.every(isPromotion) ||
+    !('page' in value) ||
+    typeof value.page !== 'number' ||
+    !('pageCount' in value) ||
+    typeof value.pageCount !== 'number' ||
+    !('total' in value) ||
+    typeof value.total !== 'number'
+  ) {
+    throw new Error('Invalid promotion response')
+  }
+
+  return value as PromotionPage
+}
+
+async function request(path: string, options: RequestInit = {}) {
+  const headers = new Headers(options.headers)
+  const accessToken = getAccessToken()
+
+  if (options.body) headers.set('Content-Type', 'application/json')
+  if (accessToken) headers.set('Authorization', `Bearer ${accessToken}`)
+
+  const response = await fetch(`${API_URL}${path}`, {
+    ...options,
+    headers,
+    credentials: 'include',
+  })
+
+  if (!response.ok && response.status !== 404) {
+    throw Object.assign(new Error('Promotion request failed'), { status: response.status })
+  }
+
+  return response
+}
+
 export const promotionService = {
+  async createFromUrl(url: string): Promise<Promotion> {
+    if (usesApi()) {
+      const response = await request('/api/promotions/ingest', {
+        method: 'POST',
+        body: JSON.stringify({ url }),
+      })
+      return parsePromotion(await response.json())
+    }
+
+    const sourceUrl = url.trim()
+    const store = detectStore(sourceUrl)
+    const createdAt = new Date().toISOString()
+    const promotion: Promotion = {
+      affiliateUrl: sourceUrl,
+      couponCode: null,
+      createdAt,
+      id: crypto.randomUUID(),
+      message: 'Rascunho criado a partir do link. Edite o conteúdo antes de enviar para revisão.',
+      originalPriceInCents: null,
+      priceInCents: 1000,
+      sourceUrl,
+      status: 'DRAFT',
+      store,
+      title: 'Nova promoção',
+      updatedAt: createdAt,
+    }
+
+    const promotions = readPromotions()
+    promotions.unshift(promotion)
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(promotions))
+
+    return structuredClone(promotion)
+  },
+
   async getById(id: string): Promise<Promotion | null> {
+    if (usesApi()) {
+      const response = await request(`/api/promotions/${encodeURIComponent(id)}`)
+      return response.status === 404 ? null : parsePromotion(await response.json())
+    }
+
     return structuredClone(readPromotions().find((promotion) => promotion.id === id) ?? null)
   },
 
   async list(filters: PromotionFilters): Promise<PromotionPage> {
+    if (usesApi()) {
+      const query = new URLSearchParams({
+        page: String(filters.page),
+        pageSize: String(filters.pageSize),
+        search: filters.search,
+        sort: filters.sort,
+        status: filters.status,
+        store: filters.store,
+      })
+      return parsePromotionPage(await (await request(`/api/promotions?${query}`)).json())
+    }
+
     const search = filters.search.trim().toLocaleLowerCase('pt-BR')
     const items = readPromotions().filter(
       (promotion) =>
@@ -132,6 +259,14 @@ export const promotionService = {
   },
 
   async update(id: string, input: UpdatePromotionInput): Promise<Promotion | null> {
+    if (usesApi()) {
+      const response = await request(`/api/promotions/${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        body: JSON.stringify(input),
+      })
+      return response.status === 404 ? null : parsePromotion(await response.json())
+    }
+
     const title = input.title.trim()
     const message = input.message.trim()
     const pricesAreValid =
@@ -171,6 +306,14 @@ export const promotionService = {
     action: PromotionWorkflowAction,
     rejectionReason?: string,
   ): Promise<Promotion | null> {
+    if (usesApi()) {
+      const response = await request(`/api/promotions/${encodeURIComponent(id)}/transitions`, {
+        method: 'POST',
+        body: JSON.stringify({ action, rejectionReason }),
+      })
+      return response.status === 404 ? null : parsePromotion(await response.json())
+    }
+
     const promotions = readPromotions()
     const index = promotions.findIndex((promotion) => promotion.id === id)
     if (index === -1) return null

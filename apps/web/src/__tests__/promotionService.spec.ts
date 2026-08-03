@@ -119,4 +119,40 @@ describe('promotionService', () => {
       }),
     ).rejects.toThrow('Promotion content cannot be edited in its current status')
   })
+
+  it('creates a draft preserving the original affiliate URL', async () => {
+    const url = 'https://s.shopee.com.br/2BDZTLM3ym?share_channel_code=1'
+    const promotion = await promotionService.createFromUrl(url)
+
+    expect(promotion.store).toBe('SHOPEE')
+    expect(promotion.status).toBe('DRAFT')
+    expect(promotion.sourceUrl).toBe(url)
+    expect(promotion.affiliateUrl).toBe(url)
+
+    const persistedPromotion = await promotionService.getById(promotion.id)
+    expect(persistedPromotion).toEqual(promotion)
+  })
+
+  it('detects Amazon and Mercado Livre from short URLs', async () => {
+    const amazonPromotion = await promotionService.createFromUrl('https://amzn.to/abc123')
+    expect(amazonPromotion.store).toBe('AMAZON')
+    expect(amazonPromotion.affiliateUrl).toBe('https://amzn.to/abc123')
+
+    const mlPromotion = await promotionService.createFromUrl('https://mercadolivre.com.br/p/MLB123')
+    expect(mlPromotion.store).toBe('MERCADO_LIVRE')
+    expect(mlPromotion.affiliateUrl).toBe('https://mercadolivre.com.br/p/MLB123')
+
+    const meliShortPromotion = await promotionService.createFromUrl('https://meli.la/1Z6rAN2')
+    expect(meliShortPromotion.store).toBe('MERCADO_LIVRE')
+    expect(meliShortPromotion.affiliateUrl).toBe('https://meli.la/1Z6rAN2')
+  })
+
+  it('rejects unsupported store URLs', async () => {
+    await expect(promotionService.createFromUrl('https://example.com/product')).rejects.toThrow(
+      'Unsupported store',
+    )
+    await expect(
+      promotionService.createFromUrl('https://shopee.example.com/product'),
+    ).rejects.toThrow('Unsupported store')
+  })
 })

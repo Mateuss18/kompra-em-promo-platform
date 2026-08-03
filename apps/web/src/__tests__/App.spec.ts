@@ -23,6 +23,7 @@ describe('App', () => {
           user: { id: 'admin-id', email: 'admin@example.com', role: 'ADMIN' },
         }),
       )
+      .mockResolvedValueOnce(Response.json({ items: [], page: 1, pageCount: 1, total: 0 }))
       .mockResolvedValueOnce(new Response(null, { status: 204 }))
     vi.stubGlobal('fetch', fetchMock)
     const pinia = createPinia()
@@ -62,7 +63,7 @@ describe('App', () => {
       expect.objectContaining({ credentials: 'include', method: 'POST' }),
     )
     expect(fetchMock).toHaveBeenNthCalledWith(
-      4,
+      5,
       `${apiUrl}/api/auth/logout`,
       expect.objectContaining({ credentials: 'include', method: 'POST' }),
     )

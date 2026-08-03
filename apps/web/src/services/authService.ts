@@ -1,6 +1,13 @@
 import type { AuthSession, AuthUser, LoginCredentials } from '@/types/auth'
 
 const API_URL = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '')
+let currentAccessToken: string | null = null
+
+export const getAccessToken = () => currentAccessToken
+
+export const setAccessToken = (accessToken: string | null) => {
+  currentAccessToken = accessToken
+}
 
 function parseUser(value: unknown): AuthUser {
   if (

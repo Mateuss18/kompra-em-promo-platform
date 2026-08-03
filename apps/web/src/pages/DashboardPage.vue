@@ -1,16 +1,29 @@
 <script setup lang="ts">
 import { BadgeCheck, FilePenLine, Send, TriangleAlert } from '@lucide/vue'
 import { onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 
+import DashboardLinkInput from '@/components/dashboard/DashboardLinkInput.vue'
 import DashboardRecentPromotions from '@/components/dashboard/DashboardRecentPromotions.vue'
 import DashboardSummaryCard from '@/components/dashboard/DashboardSummaryCard.vue'
 import { useDashboardStore } from '@/stores/dashboardStore'
+import { usePromotionStore } from '@/stores/promotionStore'
 
 const dashboardStore = useDashboardStore()
+const promotionStore = usePromotionStore()
+const router = useRouter()
 
 onMounted(() => {
   void dashboardStore.loadDashboard()
 })
+
+async function createPromotion(url: string) {
+  const id = await promotionStore.createFromUrl(url)
+  if (!id) return
+
+  await dashboardStore.loadDashboard()
+  await router.push({ name: 'promotion-details', params: { id } })
+}
 </script>
 
 <template>
@@ -28,6 +41,12 @@ onMounted(() => {
         Acompanhe os rascunhos, aprovações e publicações em um só lugar.
       </p>
     </header>
+
+    <DashboardLinkInput
+      :is-creating="promotionStore.isCreatingFromUrl"
+      :error-message="promotionStore.createFromUrlErrorMessage"
+      @submit="createPromotion"
+    />
 
     <div v-if="dashboardStore.isLoading" role="status" class="mt-12" aria-live="polite">
       <span class="sr-only">Carregando dashboard</span>
