@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, shallowRef } from 'vue'
 
-import { authService } from '@/services/authService'
+import { authService, setAccessToken } from '@/services/authService'
 import type { AuthSession, AuthUser } from '@/types/auth'
 
 export const useAuthStore = defineStore('auth', () => {
@@ -14,11 +14,13 @@ export const useAuthStore = defineStore('auth', () => {
 
   function applySession(session: AuthSession) {
     accessToken.value = session.accessToken
+    setAccessToken(session.accessToken)
     user.value = session.user
   }
 
   function clearSession() {
     accessToken.value = null
+    setAccessToken(null)
     user.value = null
   }
 

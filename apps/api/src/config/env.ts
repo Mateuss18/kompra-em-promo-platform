@@ -8,6 +8,8 @@ export type ApiConfig = {
   webOrigin: string
   secureCookies: boolean
   databaseUrl: string
+  telegramGroupId: string | null
+  telegramWebhookSecret: string | null
 }
 
 const readPositiveInteger = (value: string | undefined, fallback: number, name: string) => {
@@ -36,6 +38,13 @@ export const loadConfig = (environment: NodeJS.ProcessEnv = process.env): ApiCon
     throw new Error('DATABASE_URL is required')
   }
 
+  const telegramGroupId = environment.TELEGRAM_GROUP_ID?.trim() || null
+  const telegramWebhookSecret = environment.TELEGRAM_WEBHOOK_SECRET?.trim() || null
+
+  if ((telegramGroupId === null) !== (telegramWebhookSecret === null)) {
+    throw new Error('TELEGRAM_GROUP_ID and TELEGRAM_WEBHOOK_SECRET must be configured together')
+  }
+
   return {
     host: environment.API_HOST ?? '0.0.0.0',
     port: readPositiveInteger(environment.API_PORT, 3000, 'API_PORT'),
@@ -50,5 +59,7 @@ export const loadConfig = (environment: NodeJS.ProcessEnv = process.env): ApiCon
     webOrigin: environment.WEB_ORIGIN ?? 'http://localhost:5173',
     secureCookies: environment.NODE_ENV === 'production',
     databaseUrl,
+    telegramGroupId,
+    telegramWebhookSecret,
   }
 }

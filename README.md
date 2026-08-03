@@ -57,65 +57,78 @@ Nos dois casos, o sistema deverá criar o mesmo tipo de rascunho e seguir o mesm
 
 ## Status
 
-MVP frontend com dados mockados e autenticação real integrada à API. As promoções continuam locais até a implementação do CRUD no backend.
+MVP frontend com fallback local, autenticação real e promoções integradas à API. Links enviados pelo painel ou pelo webhook do grupo privado do Telegram criam rascunhos persistidos.
 
-## Setup do Projeto
+## Primeira execução
 
-```sh
-pnpm install
+```powershell
+pnpm.cmd install
 ```
 
 Copie `apps/api/.env.example` para `apps/api/.env` e defina `ACCESS_TOKEN_SECRET`, `ADMIN_EMAIL` e `ADMIN_PASSWORD`. Os valores de exemplo não são aceitos. Para usar outra origem da API no frontend, copie também `apps/web/.env.example` para `apps/web/.env`.
 
 Com o Docker Desktop aberto, inicie o PostgreSQL, gere o Prisma Client e aplique as migrations:
 
-```sh
-pnpm db:up
-pnpm prisma:generate
-pnpm db:migrate
+```powershell
+pnpm.cmd db:up
+pnpm.cmd prisma:generate
+pnpm.cmd db:migrate
 ```
 
 Crie ou atualize o administrador com `DATABASE_URL`, `ADMIN_EMAIL` e `ADMIN_PASSWORD` configurados no ambiente:
 
-```sh
-pnpm admin:upsert
+```powershell
+pnpm.cmd admin:upsert
 ```
 
 O login usa os valores `ADMIN_EMAIL` e `ADMIN_PASSWORD` de `apps/api/.env`.
 
-### Compile and Hot-Reload for Development
+Para receber links do grupo privado do Telegram, configure `TELEGRAM_GROUP_ID` e `TELEGRAM_WEBHOOK_SECRET` em `apps/api/.env`. Crie o bot no BotFather e registre pela Bot API um webhook público apontando para `/api/telegram/webhook`, enviando o mesmo segredo no parâmetro `secret_token`. Sem essas duas variáveis, a integração permanece desabilitada.
 
-```sh
-pnpm dev
+Com o banco preparado, inicie a API e o painel:
+
+```powershell
+pnpm.cmd dev
 ```
+
+## Uso diário
+
+Com o Docker Desktop aberto, inicie o banco e a aplicação:
+
+```powershell
+pnpm.cmd db:up
+pnpm.cmd dev
+```
+
+Execute `pnpm.cmd prisma:generate` após alterar o schema do Prisma, `pnpm.cmd db:migrate` quando houver uma migration nova e `pnpm.cmd admin:upsert` após alterar as credenciais do administrador.
 
 Para encerrar o PostgreSQL sem apagar os dados:
 
-```sh
-pnpm db:down
+```powershell
+pnpm.cmd db:down
 ```
 
 ### Type-Check, Compile and Minify for Production
 
-```sh
-pnpm build
+```powershell
+pnpm.cmd build
 ```
 
 ### Run Unit Tests with Vitest
 
-```sh
-pnpm test
+```powershell
+pnpm.cmd test
 ```
 
 ### Lint with ESLint
 
-```sh
-pnpm lint
+```powershell
+pnpm.cmd lint
 ```
 
 ### Typecheck e formatação
 
-```sh
-pnpm typecheck
-pnpm format:check
+```powershell
+pnpm.cmd typecheck
+pnpm.cmd format:check
 ```

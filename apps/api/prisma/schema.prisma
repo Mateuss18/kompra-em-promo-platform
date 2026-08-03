@@ -11,6 +11,35 @@ enum Role {
   ADMIN
 }
 
+enum PromotionStore {
+  AMAZON
+  MERCADO_LIVRE
+  SHOPEE
+}
+
+enum PromotionStatus {
+  APPROVED
+  DRAFT
+  FAILED
+  PROCESSING
+  PUBLISHED
+  PUBLISHING
+  READY_FOR_REVIEW
+  REJECTED
+}
+
+enum PromotionWorkflowAction {
+  APPROVE
+  PUBLISH
+  REJECT
+  SUBMIT_FOR_REVIEW
+}
+
+enum PromotionIngestionSource {
+  TELEGRAM
+  WEB
+}
+
 model User {
   id            String         @id @default(cuid())
   email         String         @unique
@@ -33,4 +62,42 @@ model RefreshToken {
   @@index([userId])
   @@index([expiresAt])
   @@map("refresh_tokens")
+}
+
+model Promotion {
+  id                   String                   @id @default(cuid())
+  sourceUrl            String
+  affiliateUrl         String
+  store                PromotionStore
+  status               PromotionStatus          @default(DRAFT)
+  ingestionSource      PromotionIngestionSource
+  sourceReference      String?                  @unique
+  title                String
+  message              String
+  originalPriceInCents Int?
+  priceInCents         Int
+  couponCode           String?
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
+  events               PromotionEvent[]
+
+  @@index([createdAt])
+  @@index([status])
+  @@index([store])
+  @@map("promotions")
+}
+
+model PromotionEvent {
+  id          String                  @id @default(cuid())
+  promotionId String
+  action      PromotionWorkflowAction
+  actor       Role                    @default(ADMIN)
+  fromStatus  PromotionStatus
+  toStatus    PromotionStatus
+  reason      String?
+  createdAt   DateTime                @default(now())
+  promotion   Promotion               @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+
+  @@index([promotionId, createdAt])
+  @@map("promotion_events")
 }

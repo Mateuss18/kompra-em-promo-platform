@@ -7,6 +7,8 @@ import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify'
 import type { ApiConfig } from '../config/env.js'
 import { Role, type PrismaClient } from '../generated/prisma/client.js'
 import { registerAuthRoutes } from '../modules/auth/authRoutes.js'
+import { registerPromotionRoutes } from '../modules/promotions/promotionRoutes.js'
+import { registerTelegramRoutes } from '../modules/telegram/telegramRoutes.js'
 import { createPrismaClient } from '../plugins/prisma.js'
 
 const TOKEN_ISSUER = 'kompra-em-promo-api'
@@ -49,7 +51,11 @@ export const createApp = async ({ config, prisma }: CreateAppOptions) => {
     }
   })
 
-  await app.register(cors, { origin: config.webOrigin, credentials: true })
+  await app.register(cors, {
+    origin: config.webOrigin,
+    credentials: true,
+    methods: ['GET', 'HEAD', 'POST', 'PATCH', 'OPTIONS'],
+  })
   await app.register(cookie)
   await app.register(jwt, {
     secret: config.accessTokenSecret,
@@ -60,6 +66,8 @@ export const createApp = async ({ config, prisma }: CreateAppOptions) => {
 
   app.get('/health', async () => ({ status: 'ok' }))
   await registerAuthRoutes(app, config)
+  await registerPromotionRoutes(app)
+  await registerTelegramRoutes(app, config)
 
   if (!prisma) {
     app.addHook('onClose', async () => database.$disconnect())

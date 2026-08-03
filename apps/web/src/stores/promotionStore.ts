@@ -14,7 +14,9 @@ import type {
 const PAGE_SIZE = 5
 
 export const usePromotionStore = defineStore('promotion', () => {
+  const createFromUrlErrorMessage = shallowRef('')
   const errorMessage = shallowRef('')
+  const isCreatingFromUrl = shallowRef(false)
   const isLoading = shallowRef(true)
   const isSaving = shallowRef(false)
   const isTransitioning = shallowRef(false)
@@ -29,6 +31,22 @@ export const usePromotionStore = defineStore('promotion', () => {
   const store = shallowRef<PromotionStore | 'ALL'>('ALL')
   const total = shallowRef(0)
   const transitionErrorMessage = shallowRef('')
+
+  async function createFromUrl(url: string): Promise<string | null> {
+    isCreatingFromUrl.value = true
+    createFromUrlErrorMessage.value = ''
+
+    try {
+      const promotion = await promotionService.createFromUrl(url)
+      return promotion.id
+    } catch {
+      createFromUrlErrorMessage.value =
+        'Não foi possível criar o rascunho. Verifique o link e tente novamente.'
+      return null
+    } finally {
+      isCreatingFromUrl.value = false
+    }
+  }
 
   async function loadPromotions() {
     isLoading.value = true
@@ -137,7 +155,10 @@ export const usePromotionStore = defineStore('promotion', () => {
   return {
     applyFilters,
     changePage,
+    createFromUrl,
+    createFromUrlErrorMessage,
     errorMessage,
+    isCreatingFromUrl,
     isLoading,
     isSaving,
     isTransitioning,

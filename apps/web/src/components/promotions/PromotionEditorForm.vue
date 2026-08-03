@@ -3,6 +3,7 @@ import { computed, reactive, watch } from 'vue'
 
 import PromotionPreview from '@/components/promotions/PromotionPreview.vue'
 import type { Promotion, UpdatePromotionInput } from '@/types/promotion'
+import { generatePromotionMessage } from '@/utils/promotion'
 
 const props = defineProps<{
   errorMessage: string
@@ -67,12 +68,34 @@ const canSave = computed(
   () => hasChanges.value && isValid.value && !props.isReadOnly && !props.isSaving,
 )
 
+const canGenerateMessage = computed(() => {
+  const price = Number(form.price)
+
+  return form.title.trim().length > 0 && Number.isFinite(price) && price > 0 && !props.isReadOnly
+})
+
 watch(hasChanges, (isDirty) => emit('dirty', isDirty))
 
 function resetForm() {
   if (!window.confirm('Descartar todas as alterações não salvas?')) return
 
   Object.assign(form, initialValues)
+}
+
+function generateMessage() {
+  if (!canGenerateMessage.value) return
+
+  const priceInCents = Math.round(Number(form.price) * 100)
+  const originalPriceInCents =
+    form.originalPrice === '' ? null : Math.round(Number(form.originalPrice) * 100)
+
+  form.message = generatePromotionMessage(
+    form.title,
+    originalPriceInCents,
+    priceInCents,
+    props.promotion.store,
+    props.promotion.affiliateUrl,
+  )
 }
 
 function submitForm() {
@@ -95,50 +118,49 @@ function submitForm() {
 
 <template>
   <form class="border-hairline rounded-md border" @submit.prevent="submitForm">
-    <section class="p-6" aria-labelledby="content-heading">
-      <div class="max-w-2xl">
-        <h2 id="content-heading" class="m-0 text-lg font-semibold">Conteúdo</h2>
-        <p class="text-body mt-2 mb-0 text-sm">
-          Revise as informações que serão usadas na divulgação.
-        </p>
-        <p v-if="isReadOnly" class="text-muted mt-2 mb-0 text-xs">
-          O conteúdo fica bloqueado após a aprovação ou encerramento do fluxo.
-        </p>
-      </div>
-
-      <div class="mt-6 grid gap-5">
-        <label class="grid gap-2" for="promotion-title">
-          <span class="text-sm font-medium">Título</span>
-          <input
-            id="promotion-title"
-            v-model="form.title"
-            :disabled="isReadOnly"
-            required
-            autocomplete="off"
-            class="border-hairline bg-canvas-soft text-ink focus:border-brand min-h-11 rounded-sm border px-4 text-sm outline-none transition-colors"
-          />
-        </label>
-
-        <label class="grid gap-2" for="promotion-message">
-          <span class="text-sm font-medium">Mensagem</span>
-          <textarea
-            id="promotion-message"
-            v-model="form.message"
-            :disabled="isReadOnly"
-            required
-            rows="7"
-            class="border-hairline bg-canvas-soft text-ink focus:border-brand min-h-40 resize-y rounded-sm border px-4 py-3 text-sm leading-6 outline-none transition-colors"
-          />
-        </label>
-      </div>
-    </section>
-
-    <section class="border-hairline border-t p-6" aria-labelledby="offer-heading">
+    <section class="border-hairline border-b p-6" aria-labelledby="offer-heading">
       <h2 id="offer-heading" class="m-0 text-lg font-semibold">Oferta</h2>
+      <p class="text-body mt-2 mb-0 text-sm">Preencha os dados do produto para gerar a mensagem.</p>
+      <p v-if="isReadOnly" class="text-muted mt-2 mb-0 text-xs">
+        A oferta fica bloqueada após a aprovação ou encerramento do fluxo.
+      </p>
+
+      <label class="grid gap-2 sm:col-span-2 mt-3" for="promotion-title">
+        <span class="text-sm font-medium">Título</span>
+        <input
+          id="promotion-title"
+          v-model="form.title"
+          :disabled="isReadOnly"
+          required
+          autocomplete="off"
+          class="border-hairline bg-canvas-soft text-ink focus:border-brand min-h-11 rounded-sm border px-4 text-sm outline-none transition-colors"
+        />
+      </label>
 
       <div class="mt-6 grid gap-5 sm:grid-cols-2">
+        <label class="grid gap-2" for="promotion-original-price">
+          <span class="text-sm font-medium">Preço De</span>
+          <div class="relative">
+            <span
+              class="text-muted pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 font-mono text-sm"
+            >
+              R$
+            </span>
+            <input
+              id="promotion-original-price"
+              v-model="form.originalPrice"
+              :disabled="isReadOnly"
+              type="number"
+              min="0.01"
+              step="0.01"
+              inputmode="decimal"
+              class="border-hairline bg-canvas-soft text-ink focus:border-brand min-h-11 w-full rounded-sm border pr-4 pl-12 font-mono text-sm outline-none transition-colors"
+            />
+          </div>
+        </label>
+
         <label class="grid gap-2" for="promotion-price">
-          <span class="text-sm font-medium">Preço atual</span>
+          <span class="text-sm font-medium">Preço Por</span>
           <div class="relative">
             <span
               class="text-muted pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 font-mono text-sm"
@@ -159,27 +181,6 @@ function submitForm() {
           </div>
         </label>
 
-        <label class="grid gap-2" for="promotion-original-price">
-          <span class="text-sm font-medium">Preço original</span>
-          <div class="relative">
-            <span
-              class="text-muted pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 font-mono text-sm"
-            >
-              R$
-            </span>
-            <input
-              id="promotion-original-price"
-              v-model="form.originalPrice"
-              :disabled="isReadOnly"
-              type="number"
-              min="0.01"
-              step="0.01"
-              inputmode="decimal"
-              class="border-hairline bg-canvas-soft text-ink focus:border-brand min-h-11 w-full rounded-sm border pr-4 pl-12 font-mono text-sm outline-none transition-colors"
-            />
-          </div>
-        </label>
-
         <label class="grid gap-2 sm:col-span-2" for="promotion-coupon">
           <span class="text-sm font-medium">Cupom</span>
           <input
@@ -191,6 +192,39 @@ function submitForm() {
             class="border-hairline bg-canvas-soft text-ink focus:border-brand min-h-11 rounded-sm border px-4 font-mono text-sm uppercase outline-none transition-colors"
           />
         </label>
+      </div>
+    </section>
+
+    <section class="p-6" aria-labelledby="message-heading">
+      <div class="max-w-2xl">
+        <h2 id="message-heading" class="m-0 text-lg font-semibold">Mensagem</h2>
+        <p class="text-body mt-2 mb-0 text-sm">
+          Gere a mensagem no formato do WhatsApp e ajuste o texto antes de salvar.
+        </p>
+      </div>
+
+      <div class="mt-6 grid gap-5">
+        <div class="grid gap-2">
+          <div class="flex items-center justify-between gap-2">
+            <label class="text-sm font-medium" for="promotion-message">Mensagem</label>
+            <button
+              type="button"
+              :disabled="!canGenerateMessage"
+              class="text-brand hover:text-brand-soft text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+              @click="generateMessage"
+            >
+              Gerar mensagem
+            </button>
+          </div>
+          <textarea
+            id="promotion-message"
+            v-model="form.message"
+            :disabled="isReadOnly"
+            required
+            rows="7"
+            class="border-hairline bg-canvas-soft text-ink focus:border-brand min-h-40 resize-y rounded-sm border px-4 py-3 text-sm leading-6 outline-none transition-colors"
+          />
+        </div>
       </div>
     </section>
 

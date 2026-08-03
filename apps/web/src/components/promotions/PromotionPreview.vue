@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { Image } from '@lucide/vue'
-import { computed } from 'vue'
+import { Copy, Image } from '@lucide/vue'
+import { computed, shallowRef } from 'vue'
 
 import type { PromotionStore } from '@/types/promotion'
 import { formatCurrency, PROMOTION_STORE_LABELS } from '@/utils/promotion'
@@ -14,6 +14,8 @@ const props = defineProps<{
   title: string
 }>()
 
+const copied = shallowRef(false)
+
 function formatPrice(value: number | string) {
   const price = Number(value)
   return Number.isFinite(price) && price > 0
@@ -23,6 +25,14 @@ function formatPrice(value: number | string) {
 
 const currentPrice = computed(() => formatPrice(props.price))
 const originalPrice = computed(() => (props.originalPrice ? formatPrice(props.originalPrice) : ''))
+
+async function copyMessage() {
+  await navigator.clipboard.writeText(props.message.trim())
+  copied.value = true
+  setTimeout(() => {
+    copied.value = false
+  }, 1500)
+}
 </script>
 
 <template>
@@ -68,7 +78,17 @@ const originalPrice = computed(() => (props.originalPrice ? formatPrice(props.or
     </figure>
 
     <div class="border-hairline mt-6 rounded-md border p-5">
-      <h3 class="m-0 text-sm font-semibold">Mensagem</h3>
+      <div class="flex items-center justify-between gap-2">
+        <h3 class="m-0 text-sm font-semibold">Mensagem</h3>
+        <button
+          type="button"
+          class="text-brand hover:text-brand-soft inline-flex items-center gap-1.5 text-xs font-semibold transition-colors"
+          @click="copyMessage"
+        >
+          <Copy :size="14" aria-hidden="true" />
+          {{ copied ? 'Copiado' : 'Copiar' }}
+        </button>
+      </div>
       <p class="text-body mt-3 mb-0 whitespace-pre-wrap text-sm leading-6">
         {{ message.trim() || 'A mensagem da promoção aparecerá aqui.' }}
       </p>
