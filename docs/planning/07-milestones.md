@@ -39,6 +39,7 @@
 - Parser da Shopee.
 - Parser da Amazon.
 - Parser do Mercado Livre.
+- Coleta automática de título, imagem e preços do Mercado Livre sem login.
 - Normalização do link.
 - Validação da identificação de afiliado.
 

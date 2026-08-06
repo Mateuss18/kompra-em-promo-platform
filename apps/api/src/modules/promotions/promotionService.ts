@@ -7,6 +7,7 @@ import {
   type Prisma,
   type PrismaClient,
 } from '../../generated/prisma/client.js'
+import { selectParser } from './parsers/index.js'
 
 const DEFAULT_MESSAGE =
   'Rascunho criado a partir do link. Edite o conteúdo antes de enviar para revisão.'
@@ -35,9 +36,6 @@ export class PromotionServiceError extends Error {
   }
 }
 
-const isDomain = (hostname: string, domain: string) =>
-  hostname === domain || hostname.endsWith(`.${domain}`)
-
 export function normalizePromotionUrl(value: string) {
   let url: URL
 
@@ -55,30 +53,14 @@ export function normalizePromotionUrl(value: string) {
 }
 
 export function detectStore(value: string): PromotionStore {
-  const hostname = new URL(normalizePromotionUrl(value)).hostname.toLowerCase()
+  const sourceUrl = normalizePromotionUrl(value)
+  const parser = selectParser(sourceUrl)
 
-  if (isDomain(hostname, 'shopee.com.br') || isDomain(hostname, 'shopee.com')) {
-    return PromotionStore.SHOPEE
+  if (!parser) {
+    throw new PromotionServiceError('Unsupported store', 400)
   }
 
-  if (
-    isDomain(hostname, 'amazon.com.br') ||
-    isDomain(hostname, 'amazon.com') ||
-    hostname === 'amzn.to'
-  ) {
-    return PromotionStore.AMAZON
-  }
-
-  if (
-    isDomain(hostname, 'mercadolivre.com.br') ||
-    isDomain(hostname, 'mercadolibre.com.br') ||
-    isDomain(hostname, 'mercadolibre.com') ||
-    hostname === 'meli.la'
-  ) {
-    return PromotionStore.MERCADO_LIVRE
-  }
-
-  throw new PromotionServiceError('Unsupported store', 400)
+  return parser.store
 }
 
 const toPromotion = (promotion: PromotionWithEvents) => ({
@@ -89,6 +71,7 @@ const toPromotion = (promotion: PromotionWithEvents) => ({
     ...event,
     createdAt: event.createdAt.toISOString(),
   })),
+  productImageUrl: promotion.productImageUrl ?? null,
 })
 
 export const createPromotionService = (prisma: PrismaClient) => ({
@@ -98,18 +81,26 @@ export const createPromotionService = (prisma: PrismaClient) => ({
     sourceReference?: string,
   ) {
     const sourceUrl = normalizePromotionUrl(value)
+    const store = detectStore(sourceUrl)
+    const parser = selectParser(sourceUrl)
+    const parsed = parser!.parse(sourceUrl)
+    const affiliateUrl = parser!.normalizeAffiliateUrl(sourceUrl)
     const data = {
-      affiliateUrl: sourceUrl,
+      affiliateUrl,
       couponCode: null,
       ingestionSource,
       message: DEFAULT_MESSAGE,
       originalPriceInCents: null,
-      priceInCents: 1_000,
+      priceInCents:
+        typeof parsed.priceInCents === 'number' && parsed.priceInCents > 0
+          ? parsed.priceInCents
+          : 1_000,
+      productImageUrl: parsed.imageUrl,
       sourceReference: sourceReference ?? null,
       sourceUrl,
       status: PromotionStatus.DRAFT,
-      store: detectStore(sourceUrl),
-      title: 'Nova promoção',
+      store,
+      title: parsed.title ?? 'Nova promoção',
     }
 
     if (sourceReference) {

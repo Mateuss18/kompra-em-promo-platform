@@ -57,8 +57,10 @@ Cada loja terá implementação isolada de uma interface comum.
 
 ```ts
 interface StoreParser {
-  supports(url: string): boolean
-  parse(url: string): Promise<ParsedProduct>
+  readonly store: PromotionStore;
+  canHandle(url: string): boolean;
+  normalizeAffiliateUrl(url: string): string;
+  parse(url: string): Promise<ParsedProduct>;
 }
 ```
 
@@ -67,6 +69,8 @@ Implementações iniciais:
 - `ShopeeParser`
 - `AmazonParser`
 - `MercadoLivreParser`
+
+No EPIC-09A, somente o parser do Mercado Livre fará coleta remota. Ele lerá a página pública sem login e manterá seletores e tratamento de bloqueio dentro do módulo da loja. Geração de link afiliado continua separada da coleta do produto.
 
 ### Worker
 
