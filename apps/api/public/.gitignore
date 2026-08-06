@@ -1,0 +1,3 @@
+# Generated promotion images are ignored by git; recreate them on each environment.
+generated-images/
+!.gitkeep

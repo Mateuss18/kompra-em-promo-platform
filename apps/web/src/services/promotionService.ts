@@ -44,6 +44,72 @@ const TRANSITIONS: Record<
 const isDomain = (hostname: string, domain: string) =>
   hostname === domain || hostname.endsWith(`.${domain}`)
 
+const CANVAS_SIZE = 1080
+const LOGO_WIDTH = 320
+const LOGO_HEIGHT = 80
+const LOGO_PADDING = 40
+const BRAND_BACKGROUND = '#00d992'
+const BRAND_TEXT = '#101010'
+const PLACEHOLDER_BACKGROUND = '#101010'
+
+function drawPlaceholderBackground(context: CanvasRenderingContext2D) {
+  context.fillStyle = PLACEHOLDER_BACKGROUND
+  context.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE)
+}
+
+function drawLogo(context: CanvasRenderingContext2D) {
+  context.fillStyle = BRAND_BACKGROUND
+  context.globalAlpha = 0.95
+  roundRect(context, LOGO_PADDING, LOGO_PADDING, LOGO_WIDTH, LOGO_HEIGHT, 8)
+  context.fill()
+  context.globalAlpha = 1
+
+  context.fillStyle = BRAND_TEXT
+  context.font = '700 24px system-ui, sans-serif'
+  context.textAlign = 'center'
+  context.textBaseline = 'middle'
+  context.fillText('KOMPRA EM PROMO', LOGO_PADDING + LOGO_WIDTH / 2, LOGO_PADDING + LOGO_HEIGHT / 2)
+}
+
+function roundRect(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number,
+) {
+  context.beginPath()
+  context.moveTo(x + radius, y)
+  context.lineTo(x + width - radius, y)
+  context.quadraticCurveTo(x + width, y, x + width, y + radius)
+  context.lineTo(x + width, y + height - radius)
+  context.quadraticCurveTo(x + width, y + height, x + width - radius, y + height)
+  context.lineTo(x + radius, y + height)
+  context.quadraticCurveTo(x, y + height, x, y + height - radius)
+  context.lineTo(x, y + radius)
+  context.quadraticCurveTo(x, y, x + radius, y)
+  context.closePath()
+}
+
+function drawGeneratedImage(canvas: HTMLCanvasElement): string {
+  const context = canvas.getContext('2d')
+  if (!context) throw new Error('Canvas context not available')
+
+  drawPlaceholderBackground(context)
+  drawLogo(context)
+
+  return canvas.toDataURL('image/png')
+}
+
+function generateLocalPromotionImage(): string {
+  const canvas = document.createElement('canvas')
+  canvas.width = CANVAS_SIZE
+  canvas.height = CANVAS_SIZE
+
+  return drawGeneratedImage(canvas)
+}
+
 function detectStore(url: string): PromotionStore {
   const parsedUrl = new URL(url)
   const hostname = parsedUrl.hostname.toLowerCase()
@@ -99,11 +165,13 @@ function isPromotion(value: unknown): value is Promotion {
     typeof promotion.createdAt === 'string' &&
     (promotion.events === undefined ||
       (Array.isArray(promotion.events) && promotion.events.every(isPromotionEvent))) &&
+    (promotion.generatedImageUrl === null || typeof promotion.generatedImageUrl === 'string') &&
     typeof promotion.id === 'string' &&
     typeof promotion.message === 'string' &&
     (promotion.originalPriceInCents === null ||
       typeof promotion.originalPriceInCents === 'number') &&
     typeof promotion.priceInCents === 'number' &&
+    (promotion.productImageUrl === null || typeof promotion.productImageUrl === 'string') &&
     typeof promotion.sourceUrl === 'string' &&
     typeof promotion.status === 'string' &&
     PROMOTION_STATUSES.has(promotion.status as PromotionStatus) &&
@@ -190,10 +258,12 @@ export const promotionService = {
       affiliateUrl: sourceUrl,
       couponCode: null,
       createdAt,
+      generatedImageUrl: null,
       id: crypto.randomUUID(),
       message: 'Rascunho criado a partir do link. Edite o conteúdo antes de enviar para revisão.',
       originalPriceInCents: null,
       priceInCents: 1000,
+      productImageUrl: null,
       sourceUrl,
       status: 'DRAFT',
       store,
@@ -299,6 +369,43 @@ export const promotionService = {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(promotions))
 
     return structuredClone(updatedPromotion)
+  },
+
+  async generateImage(
+    id: string,
+  ): Promise<Pick<Promotion, 'generatedImageUrl' | 'productImageUrl'> | null> {
+    if (usesApi()) {
+      const response = await request(`/api/promotions/${encodeURIComponent(id)}/generate-image`, {
+        method: 'POST',
+      })
+      if (response.status === 404) return null
+
+      const body: unknown = await response.json()
+      if (
+        !body ||
+        typeof body !== 'object' ||
+        !('generatedImageUrl' in body) ||
+        typeof body.generatedImageUrl !== 'string'
+      ) {
+        throw new Error('Invalid image generation response')
+      }
+
+      return { generatedImageUrl: body.generatedImageUrl, productImageUrl: null }
+    }
+
+    const promotions = readPromotions()
+    const index = promotions.findIndex((promotion) => promotion.id === id)
+    if (index === -1) return null
+
+    const generatedImageUrl = generateLocalPromotionImage()
+    promotions[index] = {
+      ...promotions[index]!,
+      generatedImageUrl,
+      updatedAt: new Date().toISOString(),
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(promotions))
+
+    return { generatedImageUrl, productImageUrl: promotions[index]!.productImageUrl }
   },
 
   async transition(

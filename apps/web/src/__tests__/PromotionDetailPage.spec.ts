@@ -29,6 +29,8 @@ vi.mock('@/services/promotionService', () => ({
         ) => Promise<Promotion | null>
       >(),
     update: vi.fn<(id: string, input: UpdatePromotionInput) => Promise<Promotion | null>>(),
+    generateImage:
+      vi.fn<() => Promise<{ generatedImageUrl: string; productImageUrl: string | null } | null>>(),
   },
 }))
 
@@ -36,10 +38,12 @@ const promotion: Promotion = {
   affiliateUrl: 'https://amazon.com.br/dp/ECHO?tag=kompra-20',
   couponCode: 'ECHO10',
   createdAt: '2026-07-29T15:09:00.000Z',
+  generatedImageUrl: null,
   id: 'promo_test',
   message: 'Echo Pop com Alexa.',
   originalPriceInCents: 34990,
   priceInCents: 24990,
+  productImageUrl: null,
   sourceUrl: 'https://amazon.com.br/dp/ECHO',
   status: 'DRAFT',
   store: 'AMAZON',

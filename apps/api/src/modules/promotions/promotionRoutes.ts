@@ -7,6 +7,11 @@ import {
   PromotionWorkflowAction,
 } from '../../generated/prisma/client.js'
 import { createPromotionService, PromotionServiceError } from './promotionService.js'
+import { fileURLToPath } from 'node:url'
+import { dirname, join } from 'node:path'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
+const PUBLIC_DIR = join(__dirname, '../../../public')
 
 const stores = Object.values(PromotionStore)
 const statuses = Object.values(PromotionStatus)
@@ -165,6 +170,21 @@ export const registerPromotionRoutes = async (app: FastifyInstance) => {
           request.body.rejectionReason,
         )
         return promotion ?? reply.code(404).send({ message: 'Promotion not found' })
+      } catch (error) {
+        return handleError(error, reply)
+      }
+    },
+  )
+
+  app.post<{ Params: { id: string } }>(
+    '/api/promotions/:id/generate-image',
+    { preHandler: app.authenticate },
+    async (request, reply) => {
+      try {
+        const result = await promotionService.generateImage(request.params.id, PUBLIC_DIR)
+        if (!result) return reply.code(404).send({ message: 'Promotion not found' })
+
+        return { generatedImageUrl: result.publicUrl }
       } catch (error) {
         return handleError(error, reply)
       }
