@@ -7,6 +7,7 @@ import { generatePromotionMessage } from '@/utils/promotion'
 
 const props = defineProps<{
   errorMessage: string
+  isGeneratingImage: boolean
   isReadOnly: boolean
   isSaving: boolean
   promotion: Promotion
@@ -14,6 +15,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   dirty: [isDirty: boolean]
+  generateImage: []
   save: [input: UpdatePromotionInput]
 }>()
 
@@ -230,11 +232,14 @@ function submitForm() {
 
     <PromotionPreview
       :coupon-code="form.couponCode"
+      :generated-image-url="promotion.generatedImageUrl"
+      :is-generating-image="isGeneratingImage"
       :message="form.message"
       :original-price="form.originalPrice"
       :price="form.price"
       :store="promotion.store"
       :title="form.title"
+      @generate-image="emit('generateImage')"
     />
 
     <div

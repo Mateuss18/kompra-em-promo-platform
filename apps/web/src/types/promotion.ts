@@ -29,10 +29,12 @@ export interface Promotion {
   couponCode: string | null
   createdAt: string
   events?: PromotionEvent[]
+  generatedImageUrl: string | null
   id: string
   message: string
   originalPriceInCents: number | null
   priceInCents: number
+  productImageUrl: string | null
   sourceUrl: string
   status: PromotionStatus
   store: PromotionStore

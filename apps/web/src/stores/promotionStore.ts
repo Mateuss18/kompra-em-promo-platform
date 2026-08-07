@@ -17,6 +17,7 @@ export const usePromotionStore = defineStore('promotion', () => {
   const createFromUrlErrorMessage = shallowRef('')
   const errorMessage = shallowRef('')
   const isCreatingFromUrl = shallowRef(false)
+  const isGeneratingImage = shallowRef(false)
   const isLoading = shallowRef(true)
   const isSaving = shallowRef(false)
   const isTransitioning = shallowRef(false)
@@ -124,6 +125,33 @@ export const usePromotionStore = defineStore('promotion', () => {
     }
   }
 
+  async function generateImage() {
+    if (!selectedPromotion.value) return false
+
+    isGeneratingImage.value = true
+    saveErrorMessage.value = ''
+
+    try {
+      const result = await promotionService.generateImage(selectedPromotion.value.id)
+
+      if (!result) {
+        saveErrorMessage.value = 'A promoção não está mais disponível.'
+        return false
+      }
+
+      selectedPromotion.value = {
+        ...selectedPromotion.value,
+        generatedImageUrl: result.generatedImageUrl,
+      }
+      return true
+    } catch {
+      saveErrorMessage.value = 'Não foi possível gerar a imagem.'
+      return false
+    } finally {
+      isGeneratingImage.value = false
+    }
+  }
+
   async function transitionPromotion(action: PromotionWorkflowAction, rejectionReason?: string) {
     if (!selectedPromotion.value) return false
 
@@ -158,7 +186,9 @@ export const usePromotionStore = defineStore('promotion', () => {
     createFromUrl,
     createFromUrlErrorMessage,
     errorMessage,
+    generateImage,
     isCreatingFromUrl,
+    isGeneratingImage,
     isLoading,
     isSaving,
     isTransitioning,

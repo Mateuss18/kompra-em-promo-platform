@@ -44,6 +44,14 @@ async function transitionPromotion(action: PromotionWorkflowAction, rejectionRea
     saveMessage.value = 'Status atualizado.'
   }
 }
+
+async function generateImage() {
+  saveMessage.value = ''
+
+  if (await promotionStore.generateImage()) {
+    saveMessage.value = 'Imagem gerada.'
+  }
+}
 </script>
 
 <template>
@@ -115,8 +123,10 @@ async function transitionPromotion(action: PromotionWorkflowAction, rejectionRea
           :promotion="promotionStore.selectedPromotion"
           :is-read-only="!canEditPromotion"
           :is-saving="promotionStore.isSaving"
+          :is-generating-image="promotionStore.isGeneratingImage"
           :error-message="promotionStore.saveErrorMessage"
           @dirty="setDirty"
+          @generate-image="generateImage"
           @save="savePromotion"
         />
 

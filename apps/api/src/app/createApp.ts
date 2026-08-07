@@ -2,7 +2,10 @@ import cookie from '@fastify/cookie'
 import cors from '@fastify/cors'
 import jwt from '@fastify/jwt'
 import rateLimit from '@fastify/rate-limit'
+import staticFiles from '@fastify/static'
 import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify'
+import { fileURLToPath } from 'node:url'
+import { dirname, join } from 'node:path'
 
 import type { ApiConfig } from '../config/env.js'
 import { Role, type PrismaClient } from '../generated/prisma/client.js'
@@ -10,6 +13,8 @@ import { registerAuthRoutes } from '../modules/auth/authRoutes.js'
 import { registerPromotionRoutes } from '../modules/promotions/promotionRoutes.js'
 import { registerTelegramRoutes } from '../modules/telegram/telegramRoutes.js'
 import { createPrismaClient } from '../plugins/prisma.js'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
 
 const TOKEN_ISSUER = 'kompra-em-promo-api'
 const TOKEN_AUDIENCE = 'kompra-em-promo-web'
@@ -63,6 +68,10 @@ export const createApp = async ({ config, prisma }: CreateAppOptions) => {
     verify: { allowedIss: TOKEN_ISSUER, allowedAud: TOKEN_AUDIENCE },
   })
   await app.register(rateLimit, { global: false })
+  await app.register(staticFiles, {
+    root: join(__dirname, '../../public'),
+    prefix: '/',
+  })
 
   app.get('/health', async () => ({ status: 'ok' }))
   await registerAuthRoutes(app, config)

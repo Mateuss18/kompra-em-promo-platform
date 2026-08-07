@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Copy, Image } from '@lucide/vue'
+import { Copy, Image, Loader2, RefreshCw } from '@lucide/vue'
 import { computed, shallowRef } from 'vue'
 
 import type { PromotionStore } from '@/types/promotion'
@@ -7,11 +7,17 @@ import { formatCurrency, PROMOTION_STORE_LABELS } from '@/utils/promotion'
 
 const props = defineProps<{
   couponCode: string
+  generatedImageUrl: string | null
+  isGeneratingImage: boolean
   message: string
   originalPrice: number | string
   price: number | string
   store: PromotionStore
   title: string
+}>()
+
+const emit = defineEmits<{
+  generateImage: []
 }>()
 
 const copied = shallowRef(false)
@@ -25,6 +31,8 @@ function formatPrice(value: number | string) {
 
 const currentPrice = computed(() => formatPrice(props.price))
 const originalPrice = computed(() => (props.originalPrice ? formatPrice(props.originalPrice) : ''))
+const hasGeneratedImage = computed(() => Boolean(props.generatedImageUrl))
+const generatedImageSrc = computed(() => props.generatedImageUrl ?? undefined)
 
 async function copyMessage() {
   await navigator.clipboard.writeText(props.message.trim())
@@ -51,7 +59,14 @@ async function copyMessage() {
           </span>
         </div>
 
-        <div class="text-muted grid justify-items-center gap-3 text-center">
+        <div v-if="hasGeneratedImage" class="relative overflow-hidden rounded-sm">
+          <img
+            :src="generatedImageSrc"
+            alt="Imagem gerada para a promoção"
+            class="aspect-square w-full object-cover"
+          />
+        </div>
+        <div v-else class="text-muted grid justify-items-center gap-3 text-center">
           <Image :size="44" :stroke-width="1.25" aria-hidden="true" />
           <span class="text-xs">Imagem do produto</span>
         </div>
@@ -76,6 +91,17 @@ async function copyMessage() {
       </div>
       <figcaption class="sr-only">Preview da arte da promoção</figcaption>
     </figure>
+
+    <button
+      type="button"
+      :disabled="isGeneratingImage"
+      class="bg-canvas-soft text-ink hover:border-brand mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-sm border px-4 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+      @click="emit('generateImage')"
+    >
+      <Loader2 v-if="isGeneratingImage" :size="16" class="animate-spin" aria-hidden="true" />
+      <RefreshCw v-else :size="16" aria-hidden="true" />
+      {{ isGeneratingImage ? 'Gerando imagem...' : 'Gerar imagem' }}
+    </button>
 
     <div class="border-hairline mt-6 rounded-md border p-5">
       <div class="flex items-center justify-between gap-2">

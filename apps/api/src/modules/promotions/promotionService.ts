@@ -7,6 +7,7 @@ import {
   type Prisma,
   type PrismaClient,
 } from '../../generated/prisma/client.js'
+import { generatePromotionImage, type GeneratedImage } from '../images/imageGenerationService.js'
 import { selectParser } from './parsers/index.js'
 
 const DEFAULT_MESSAGE =
@@ -71,6 +72,7 @@ const toPromotion = (promotion: PromotionWithEvents) => ({
     ...event,
     createdAt: event.createdAt.toISOString(),
   })),
+  generatedImageUrl: promotion.generatedImageUrl ?? null,
   productImageUrl: promotion.productImageUrl ?? null,
 })
 
@@ -88,6 +90,7 @@ export const createPromotionService = (prisma: PrismaClient) => ({
     const data = {
       affiliateUrl,
       couponCode: null,
+      generatedImageUrl: null,
       ingestionSource,
       message: DEFAULT_MESSAGE,
       originalPriceInCents: null,
@@ -205,6 +208,27 @@ export const createPromotionService = (prisma: PrismaClient) => ({
         include: { events: { orderBy: { createdAt: 'asc' } } },
       }),
     )
+  },
+
+  async generateImage(id: string, publicDir: string): Promise<GeneratedImage | null> {
+    const promotion = await prisma.promotion.findUnique({ where: { id } })
+    if (!promotion) return null
+
+    const generated = await generatePromotionImage(
+      {
+        id: promotion.id,
+        productImageUrl: promotion.productImageUrl,
+        title: promotion.title,
+      },
+      publicDir,
+    )
+
+    await prisma.promotion.update({
+      where: { id },
+      data: { generatedImageUrl: generated.publicUrl },
+    })
+
+    return generated
   },
 
   async transition(id: string, action: PromotionWorkflowAction, rejectionReason?: string) {
