@@ -6,11 +6,16 @@ Proposto (para definição futura)
 
 ## Contexto
 
-Cada loja parceira (Shopee, Amazon, Mercado Livre) pode exigir credenciais
-específicas para gerar ou validar links de afiliado. Inspirado em outras
-plataformas de afiliados, o modelo provável é:
+Cada loja parceira pode exigir credenciais específicas para gerar links de afiliado. A pesquisa prática separou duas responsabilidades que antes estavam misturadas:
 
-- **Mercado Livre**: nome de usuário, token e cookie.
+- coleta de dados públicos do produto;
+- geração do link afiliado.
+
+Para Mercado Livre, título, imagem e preços estão no HTML inicial da página pública e não exigem credenciais. A geração de links, por outro lado, foi observada no endpoint interno `createLink` usando tag, cookie `ssid` e token CSRF.
+
+O modelo conhecido ou provável por loja é:
+
+- **Mercado Livre**: tag, cookie `ssid` e token CSRF para geração não oficial do link; nenhuma credencial para coleta pública do produto.
 - **Shopee**: Shopee credential e Shopee secret key.
 - **Amazon**: versão da credencial, ID da credencial, segredo e partner tag.
 
@@ -27,12 +32,13 @@ afiliado usando credenciais de loja será tratada em épico posterior.
 - Onde são armazenadas: configuração geral, tabela `storeCredentials`, variáveis
   de ambiente ou cofre de secrets?
 - O frontend precisa editar essas credenciais ou elas vêm apenas do backend?
-- Quais operações reais exigirão essas credenciais (apenas assinatura de link,
-  ou também consulta de dados do produto)?
+- Como renovar com segurança uma sessão afiliada expirada?
+- O risco operacional do endpoint interno do Mercado Livre será aceito em produção?
 
 ## Consequências
 
 - O MVP atual continua simples: detecção de loja + link de afiliado fornecido
   pelo usuário.
+- A coleta pública do Mercado Livre pode evoluir independentemente deste ADR e não deve acessar credenciais afiliadas.
 - Quando esse ADR for aceito, será necessário criar um cadastro de credenciais
   por loja e integrá-lo ao parser/gerador de links de afiliado.

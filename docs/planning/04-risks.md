@@ -2,20 +2,21 @@
 
 ## Riscos técnicos
 
-| Risco | Impacto | Mitigação inicial |
-|---|---|---|
-| Alteração no HTML ou nas páginas das lojas | Alto | Isolar cada loja em um parser próprio e adicionar testes com páginas de referência |
-| Bloqueio de scraping | Alto | Priorizar APIs oficiais quando disponíveis, aplicar limites e manter fallback manual |
-| Dados incompletos ou incorretos | Alto | Permitir edição antes da aprovação |
-| Preço mudar após a coleta | Alto | Exibir horário da coleta e exigir revisão |
-| Link sem tag de afiliado | Alto | Validar e normalizar o link antes de aprovar |
-| Link encurtado ou redirecionado | Médio | Resolver redirecionamentos de forma controlada |
-| Imagem remota indisponível | Médio | Permitir substituição manual e registrar erro |
-| Texto cortado na imagem | Médio | Limitar tamanho e validar layout antes da geração |
-| Publicação duplicada | Alto | Usar idempotência e travas por promoção |
-| Falha no Telegram | Médio | Registrar tentativa, erro e permitir reenvio |
-| Fila indisponível | Médio | Persistir jobs e permitir recuperação |
-| Vazamento de tokens | Alto | Usar variáveis de ambiente e rotação de segredos |
+| Risco                                      | Impacto | Mitigação inicial                                                                                        |
+| ------------------------------------------ | ------- | -------------------------------------------------------------------------------------------------------- |
+| Alteração no HTML ou nas páginas das lojas | Alto    | Isolar cada loja em um parser próprio e testar fragmentos mínimos dos seletores usados                   |
+| Bloqueio da coleta pública                 | Alto    | Baixa concorrência, timeout, sem repetição de 403/CAPTCHA e navegador headless somente quando necessário |
+| Dados incompletos ou incorretos            | Alto    | Permitir edição antes da aprovação                                                                       |
+| Preço mudar após a coleta                  | Alto    | Exibir horário da coleta e exigir revisão                                                                |
+| Link sem tag de afiliado                   | Alto    | Validar e normalizar o link antes de aprovar                                                             |
+| Link encurtado ou redirecionado            | Médio   | Resolver redirecionamentos de forma controlada                                                           |
+| Imagem remota indisponível                 | Médio   | Permitir substituição manual e registrar erro                                                            |
+| Texto cortado na imagem                    | Médio   | Limitar tamanho e validar layout antes da geração                                                        |
+| Publicação duplicada                       | Alto    | Usar idempotência e travas por promoção                                                                  |
+| Falha no Telegram                          | Médio   | Registrar tentativa, erro e permitir reenvio                                                             |
+| Fila indisponível                          | Médio   | Persistir jobs e permitir recuperação                                                                    |
+| Vazamento de tokens                        | Alto    | Usar variáveis de ambiente e rotação de segredos                                                         |
+| Vazamento de cookie de sessão afiliada     | Alto    | Não usar cookies na coleta de produto; manter futura geração afiliada isolada e criptografada            |
 
 ## Riscos de produto
 

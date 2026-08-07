@@ -46,7 +46,6 @@ Nos dois casos, o sistema deverá criar o mesmo tipo de rascunho e seguir o mesm
 - PostgreSQL
 - Redis
 - BullMQ
-- grammY
 - Sharp
 
 ## Documentação
@@ -83,7 +82,9 @@ pnpm.cmd admin:upsert
 
 O login usa os valores `ADMIN_EMAIL` e `ADMIN_PASSWORD` de `apps/api/.env`.
 
-Para receber links do grupo privado do Telegram, configure `TELEGRAM_GROUP_ID` e `TELEGRAM_WEBHOOK_SECRET` em `apps/api/.env`. Crie o bot no BotFather e registre pela Bot API um webhook público apontando para `/api/telegram/webhook`, enviando o mesmo segredo no parâmetro `secret_token`. Sem essas duas variáveis, a integração permanece desabilitada.
+A coleta automática de título, imagem e preços do Mercado Livre será feita pela página pública, sem login ou cookies. Consulte [`docs/planning/11-epic-09a-mercado-livre-product-collection.md`](docs/planning/11-epic-09a-mercado-livre-product-collection.md).
+
+Para receber links do grupo privado do Telegram, configure `TELEGRAM_GROUP_ID` e `TELEGRAM_WEBHOOK_SECRET` em `apps/api/.env`. Crie o bot no BotFather e registre pela Bot API um webhook público apontando para `/api/telegram/webhook`, enviando o mesmo segredo no parâmetro `secret_token`. Sem essas duas variáveis, a integração permanece desabilitada. Para o bot receber links comuns do grupo, torne-o administrador ou desative o modo de privacidade com `/setprivacy` no BotFather e adicione-o novamente ao grupo.
 
 Com o banco preparado, inicie a API e o painel:
 
@@ -99,6 +100,14 @@ Com o Docker Desktop aberto, inicie o banco e a aplicação:
 pnpm.cmd db:up
 pnpm.cmd dev
 ```
+
+Em outro terminal, exponha a API local e mantenha o processo aberto:
+
+```powershell
+ngrok http 3000
+```
+
+O webhook continua registrado entre reinicializações. Se o ngrok mantiver a mesma URL HTTPS, nenhuma configuração adicional é necessária. Execute `setWebhook` novamente somente se a URL pública mudar.
 
 Execute `pnpm.cmd prisma:generate` após alterar o schema do Prisma, `pnpm.cmd db:migrate` quando houver uma migration nova e `pnpm.cmd admin:upsert` após alterar as credenciais do administrador.
 

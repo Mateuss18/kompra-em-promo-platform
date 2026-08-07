@@ -31,7 +31,8 @@ const secretsMatch = (left: string | undefined, right: string) => {
 }
 
 export const registerTelegramRoutes = async (app: FastifyInstance, config: ApiConfig) => {
-  if (!config.telegramGroupId || !config.telegramWebhookSecret) return
+  const { telegramGroupId, telegramWebhookSecret } = config
+  if (!telegramGroupId || !telegramWebhookSecret) return
 
   const promotionService = createPromotionService(app.prisma)
 
@@ -40,16 +41,13 @@ export const registerTelegramRoutes = async (app: FastifyInstance, config: ApiCo
     { schema: { body: { type: 'object', additionalProperties: true } } },
     async (request, reply) => {
       const secretHeader = request.headers['x-telegram-bot-api-secret-token']
-      if (
-        Array.isArray(secretHeader) ||
-        !secretsMatch(secretHeader, config.telegramWebhookSecret!)
-      ) {
+      if (Array.isArray(secretHeader) || !secretsMatch(secretHeader, telegramWebhookSecret)) {
         return reply.code(401).send({ message: 'Unauthorized' })
       }
 
       const message = request.body.message
       if (
-        message?.chat?.id?.toString() !== config.telegramGroupId ||
+        message?.chat?.id?.toString() !== telegramGroupId ||
         message.message_id === undefined ||
         !message.text
       ) {
@@ -57,15 +55,40 @@ export const registerTelegramRoutes = async (app: FastifyInstance, config: ApiCo
       }
 
       const url = extractPromotionUrl(message.text)
-      if (!url) return { ok: true }
+      if (!url) {
+        if (/https?:\/\/[^\s<>()]+/i.test(message.text)) {
+          return {
+            method: 'sendMessage',
+            chat_id: message.chat.id,
+            text: 'Não foi possível criar o rascunho. Envie um link da Shopee, Amazon ou Mercado Livre.',
+          }
+        }
 
-      await promotionService.createDraft(
-        url,
-        PromotionIngestionSource.TELEGRAM,
-        `telegram:${message.chat.id}:${message.message_id}`,
-      )
+        return { ok: true }
+      }
 
-      return { ok: true }
+      let promotion: Awaited<ReturnType<typeof promotionService.createDraft>>
+
+      try {
+        promotion = await promotionService.createDraft(
+          url,
+          PromotionIngestionSource.TELEGRAM,
+          `telegram:${message.chat.id}:${message.message_id}`,
+        )
+      } catch {
+        app.log.error('Failed to ingest Telegram promotion')
+        return {
+          method: 'sendMessage',
+          chat_id: message.chat.id,
+          text: 'Não foi possível criar o rascunho. Tente novamente.',
+        }
+      }
+
+      return {
+        method: 'sendMessage',
+        chat_id: message.chat.id,
+        text: `Rascunho criado com sucesso: ${promotion.id}`,
+      }
     },
   )
 }
